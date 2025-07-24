@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+    
+    <!-- Homepage Images -->
+    <url>
+        <loc>https://vectorizeai.com/</loc>
+        <image:image>
+            <image:loc>https://vectorizeai.com/assets/images/vectorizer-hero-demo.jpg</image:loc>
+            <image:title>AI Image Vectorizer Demo</image:title>
+            <image:caption>Before and after comparison showing JPG to SVG conversion</image:caption>
+        </image:image>
+        <image:image>
+            <image:loc>https://vectorizeai.com/assets/images/features-ai-upscaling.jpg</image:loc>
+            <image:title>AI-Powered Image Upscaling</image:title>
+            <image:caption>Waifu2x technology enhances image quality before vectorization</image:caption>
+        </image:image>
+        <image:image>
+            <image:loc>https://vectorizeai.com/assets/images/batch-upload-interface.jpg</image:loc>
+            <image:title>Batch Upload Interface</image:title>
+            <image:caption>Upload multiple images for bulk vectorization</image:caption>
+        </image:image>
+    </url>
+    
+    <!-- Blog Images -->
+    <url>
+        <loc>https://vectorizeai.com/blog/how-to-vectorize-logo-for-tshirt-printing</loc>
+        <image:image>
+            <image:loc>https://vectorizeai.com/assets/images/blog/tshirt-logo-before-after.jpg</image:loc>
+            <image:title>T-Shirt Logo Vectorization Before and After</image:title>
+            <image:caption>Comparison showing pixelated logo converted to crisp SVG vector</image:caption>
+        </image:image>
+        <image:image>
+            <image:loc>https://vectorizeai.com/assets/images/blog/print-quality-comparison.jpg</image:loc>
+            <image:title>Print Quality Comparison</image:title>
+            <image:caption>Vector vs raster printing results on t-shirt fabric</image:caption>
+        </image:image>
+    </url>
+    
+    <!-- Tutorial Images -->
+    <url>
+        <loc>https://vectorizeai.com/tutorials/</loc>
+        <image:image>
+            <image:loc>https://vectorizeai.com/assets/images/tutorials/step-by-step-guide.jpg</image:loc>
+            <image:title>Step by Step Vectorization Guide</image:title>
+            <image:caption>Visual guide showing the 4-step vectorization process</image:caption>
+        </image:image>
+        <image:image>
+            <image:loc>https://vectorizeai.com/assets/images/tutorials/file-format-examples.jpg</image:loc>
+            <image:title>Supported File Format Examples</image:title>
+            <image:caption>Examples of JPG, PNG, and SVG file formats</image:caption>
+        </image:image>
+    </url>
+    
+    <!-- Example Images -->
+    <url>
+        <loc>https://vectorizeai.com/examples/</loc>
+        <image:image>
+            <image:loc>https://vectorizeai.com/assets/images/examples/logo-vectorization-samples.jpg</image:loc>
+            <image:title>Logo Vectorization Samples</image:title>
+            <image:caption>Collection of logos converted from raster to vector format</image:caption>
+        </image:image>
+        <image:image>
+            <image:loc>https://vectorizeai.com/assets/images/examples/embroidery-ready-vectors.jpg</image:loc>
+            <image:title>Embroidery Ready Vector Files</image:title>
+            <image:caption>Clean vector files optimized for embroidery machines</image:caption>
+        </image:image>
+    </url>
+    
+</urlset>

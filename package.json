@@ -1,0 +1,18 @@
+{
+  "name": "vectorizeai",
+  "version": "1.0.0",
+  "description": "AI-powered image vectorization platform",
+  "main": "index.php",
+  "scripts": {
+    "start": "php -S localhost:8000",
+    "api": "cd python/api && python run.py",
+    "backup": "./backup.sh",
+    "monitor": "./monitor.sh",
+    "setup": "./setup_production.sh"
+  },
+  "keywords": ["vectorization", "ai", "image-processing", "svg", "waifu2x", "vtracer"],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {}
+}

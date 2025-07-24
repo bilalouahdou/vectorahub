@@ -1,0 +1,68 @@
+# VectorizeAI Docker Container
+FROM ubuntu:22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    nginx \
+    php8.1 \
+    php8.1-fpm \
+    php8.1-mysql \
+    php8.1-curl \
+    php8.1-gd \
+    php8.1-mbstring \
+    php8.1-xml \
+    php8.1-zip \
+    python3 \
+    python3-pip \
+    python3-venv \
+    mysql-client \
+    supervisor \
+    curl \
+    wget \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create application directory
+WORKDIR /var/www/vectorizeai
+
+# Copy application files
+COPY . .
+
+# Install Waifu2x
+RUN cd /tmp && \
+    wget https://github.com/nihui/waifu2x-ncnn-vulkan/releases/download/20220728/waifu2x-ncnn-vulkan-20220728-ubuntu.zip && \
+    unzip waifu2x-ncnn-vulkan-20220728-ubuntu.zip && \
+    mv waifu2x-ncnn-vulkan-20220728-ubuntu /opt/waifu2x && \
+    chmod +x /opt/waifu2x/waifu2x-ncnn-vulkan
+
+# Setup Python environment
+RUN cd python/api && \
+    python3 -m venv venv && \
+    . venv/bin/activate && \
+    pip install -r requirements.txt
+
+# Configure Nginx
+COPY deployment/nginx.conf /etc/nginx/sites-available/default
+
+# Configure PHP-FPM
+RUN sed -i 's/upload_max_filesize = 2M/upload_max_filesize = 10M/' /etc/php/8.1/fpm/php.ini && \
+    sed -i 's/post_max_size = 8M/post_max_size = 10M/' /etc/php/8.1/fpm/php.ini && \
+    sed -i 's/max_execution_time = 30/max_execution_time = 300/' /etc/php/8.1/fpm/php.ini
+
+# Set permissions
+RUN chown -R www-data:www-data /var/www/vectorizeai && \
+    chmod -R 755 /var/www/vectorizeai && \
+    mkdir -p uploads outputs && \
+    chmod -R 775 uploads outputs
+
+# Configure Supervisor
+COPY deployment/supervisord.conf /etc/supervisor/conf.d/vectorizeai.conf
+
+# Expose ports
+EXPOSE 80
+
+# Start services
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/supervisord.conf"]

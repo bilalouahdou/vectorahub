@@ -1,0 +1,243 @@
+class Dashboard {
+    constructor() {
+        this.currentSection = 'overview';
+        this.currentPage = 1;
+        this.VectorizeUtils = { formatDate: (date) => new Date(date).toLocaleDateString() }; // Declare VectorizeUtils
+        this.init();
+    }
+    
+    init() {
+        this.setupNavigation();
+        this.loadOverviewStats();
+        this.loadRecentJobs();
+    }
+    
+    setupNavigation() {
+        const navLinks = document.querySelectorAll('.sidebar-nav .nav-link[data-section]');
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const section = link.dataset.section;
+                this.showSection(section);
+                
+                // Update active nav link
+                navLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+            });
+        });
+    }
+    
+    showSection(sectionName) {
+        // Hide all sections
+        document.querySelectorAll('.section').forEach(section => {
+            section.classList.add('d-none');
+        });
+        
+        // Show target section
+        const targetSection = document.getElementById(`${sectionName}-section`);
+        if (targetSection) {
+            targetSection.classList.remove('d-none');
+            this.currentSection = sectionName;
+            
+            // Load section-specific content
+            if (sectionName === 'history') {
+                this.loadHistory();
+            }
+        }
+    }
+    
+    async loadOverviewStats() {
+        try {
+            const response = await fetch('/php/dashboard_stats.php');
+            const stats = await response.json();
+            
+            document.getElementById('totalJobs').textContent = stats.total_jobs || 0;
+            document.getElementById('successfulJobs').textContent = stats.successful_jobs || 0;
+        } catch (error) {
+            console.error('Failed to load stats:', error);
+        }
+    }
+    
+    async loadRecentJobs() {
+        try {
+            const response = await fetch('/php/history.php?limit=5');
+            const data = await response.json();
+            
+            const container = document.getElementById('recentJobs');
+            
+            if (data.jobs && data.jobs.length > 0) {
+                container.innerHTML = data.jobs.map(job => this.createJobRow(job)).join('');
+            } else {
+                container.innerHTML = '<p class="text-muted">No jobs yet. <a href="#" onclick="dashboard.showSection(\'upload\')">Upload your first image!</a></p>';
+            }
+        } catch (error) {
+            console.error('Failed to load recent jobs:', error);
+            document.getElementById('recentJobs').innerHTML = '<p class="text-danger">Failed to load recent jobs</p>';
+        }
+    }
+    
+    async loadHistory(page = 1) {
+        const container = document.getElementById('historyContent');
+        const pagination = document.getElementById('historyPagination');
+        
+        try {
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <div class="spinner-border text-accent" role="status"></div>
+                    <p class="mt-2">Loading history...</p>
+                </div>
+            `;
+            
+            const response = await fetch(`/php/history.php?page=${page}`);
+            const data = await response.json();
+            
+            if (data.jobs && data.jobs.length > 0) {
+                container.innerHTML = `
+                    <div class="row g-3">
+                        ${data.jobs.map(job => this.createJobCard(job)).join('')}
+                    </div>
+                `;
+                
+                // Setup pagination
+                if (data.pagination.total_pages > 1) {
+                    this.setupPagination(data.pagination);
+                    pagination.classList.remove('d-none');
+                } else {
+                    pagination.classList.add('d-none');
+                }
+            } else {
+                container.innerHTML = `
+                    <div class="text-center py-5">
+                        <p class="text-muted">No jobs found</p>
+                        <a href="#" class="btn btn-accent" onclick="dashboard.showSection('upload')">Upload your first image</a>
+                    </div>
+                `;
+                pagination.classList.add('d-none');
+            }
+        } catch (error) {
+            console.error('Failed to load history:', error);
+            container.innerHTML = '<div class="alert alert-danger">Failed to load history</div>';
+        }
+    }
+    
+    createJobRow(job) {
+        const statusClass = `status-${job.status}`;
+        const date = this.VectorizeUtils.formatDate(job.created_at);
+        
+        return `
+            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                <div>
+                    <strong>Job #${job.id}</strong>
+                    <span class="status-badge ${statusClass}">${job.status}</span>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted">${date}</small>
+                    ${job.status === 'done' ? `<a href="download.php?file=${job.output_svg_path}" class="btn btn-sm btn-outline-accent ms-2" download>⬇️</a>` : ''}
+                </div>
+            </div>
+        `;
+    }
+    
+    createJobCard(job) {
+        const statusClass = `status-${job.status}`;
+        const date = this.VectorizeUtils.formatDate(job.created_at);
+        
+        return `
+            <div class="col-md-6 col-lg-4">
+                <div class="job-card">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h6 class="mb-0">Job #${job.id}</h6>
+                        <span class="status-badge ${statusClass}">${job.status}</span>
+                    </div>
+                    
+                    ${job.status === 'done' && job.output_svg_path ? `
+                        <div class="text-center mb-3">
+                            <object type="image/svg+xml" data="/outputs/${job.output_svg_path}" class="svg-preview" style="max-width: 100px; max-height: 100px;"></object>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="small text-muted mb-2">
+                        <div>Created: ${date}</div>
+                        <div>Coins used: ${job.coins_used || 1}</div>
+                        <div>File: ${job.original_image_path}</div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        ${job.status === 'done' ? `
+                            <a href="download.php?file=${job.output_svg_path}" class="btn btn-accent btn-sm flex-grow-1" download>
+                                ⬇️ Download
+                            </a>
+                        ` : job.status === 'failed' ? `
+                            <button class="btn btn-outline-secondary btn-sm flex-grow-1" onclick="dashboard.retryJob(${job.id})">
+                                🔄 Retry
+                            </button>
+                        ` : `
+                            <span class="btn btn-outline-secondary btn-sm flex-grow-1 disabled">
+                                ⏳ Processing
+                            </span>
+                        `}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    setupPagination(pagination) {
+        const container = document.querySelector('#historyPagination .pagination');
+        const { current_page, total_pages } = pagination;
+        
+        let html = '';
+        
+        // Previous button
+        if (current_page > 1) {
+            html += `<li class="page-item"><a class="page-link" href="#" onclick="dashboard.loadHistory(${current_page - 1})">Previous</a></li>`;
+        }
+        
+        // Page numbers
+        for (let i = 1; i <= total_pages; i++) {
+            if (i === current_page) {
+                html += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+            } else if (i === 1 || i === total_pages || Math.abs(i - current_page) <= 2) {
+                html += `<li class="page-item"><a class="page-link" href="#" onclick="dashboard.loadHistory(${i})">${i}</a></li>`;
+            } else if (Math.abs(i - current_page) === 3) {
+                html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+        
+        // Next button
+        if (current_page < total_pages) {
+            html += `<li class="page-item"><a class="page-link" href="#" onclick="dashboard.loadHistory(${current_page + 1})">Next</a></li>`;
+        }
+        
+        container.innerHTML = html;
+    }
+    
+    async retryJob(jobId) {
+        try {
+            const response = await fetch('/php/retry_job.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ job_id: jobId, csrf_token: document.querySelector('input[name="csrf_token"]').value })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                VectorizeUtils.showToast('Job retry initiated', 'success');
+                this.loadHistory(this.currentPage);
+            } else {
+                VectorizeUtils.showToast(result.error || 'Failed to retry job', 'danger');
+            }
+        } catch (error) {
+            VectorizeUtils.showToast('Network error', 'danger');
+        }
+    }
+}
+
+// Initialize dashboard
+let dashboard;
+document.addEventListener('DOMContentLoaded', () => {
+    dashboard = new Dashboard();
+});

@@ -1,0 +1,46 @@
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "How to vectorize an image for free online?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Simply upload your JPG or PNG image to VectorizeAI, and our AI-powered tool will automatically convert it to a scalable SVG vector format. The process takes seconds and is completely free with no watermarks or registration required."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What image formats can I convert to SVG?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "VectorizeAI supports JPG, JPEG, and PNG image formats. Files can be up to 5MB in size. For best results, use high-resolution images with clear, defined shapes and minimal noise."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the vectorized SVG suitable for printing?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes! Our AI-enhanced vectorization creates print-ready SVG files perfect for t-shirts, business cards, posters, and professional printing. The vectors are scalable without quality loss."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How long does the vectorization process take?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Most images are processed within 10-30 seconds. Complex images with many details may take up to 2 minutes. Our AI-powered pipeline includes upscaling and optimization for the best results."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I use vectorized images for commercial purposes?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, you retain full rights to your vectorized images. However, ensure you have proper licensing for the original image. VectorizeAI only processes your images and doesn't claim any ownership rights."
+      }
+    }
+  ]
+}

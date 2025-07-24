@@ -1,0 +1,34 @@
+# VectraHub - Robots.txt Configuration
+# https://vectorahub.online/robots.txt
+
+User-agent: *
+Allow: /
+
+# Block sensitive directories
+Disallow: /uploads/
+Disallow: /php/admin/
+Disallow: /php/auth/
+Disallow: /php/config.php
+Disallow: /php/utils.php
+Disallow: /private/
+Disallow: /logs/
+Disallow: /backup/
+Disallow: /tmp/
+Disallow: /.git/
+Disallow: /vendor/
+Disallow: /node_modules/
+
+# Block dynamic URLs with parameters
+Disallow: /*?*
+Disallow: /search?
+Disallow: /dashboard.php
+Disallow: /login.php
+Disallow: /register.php
+Disallow: /billing.php
+
+# Allow important pages
+Allow: /
+Allow: /pricing
+Allow: /api
+Allow: /blog/
+Allow: /help/

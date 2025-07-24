@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  vectorizeai:
+    build: .
+    ports:
+      - "80:80"
+    volumes:
+      - ./uploads:/var/www/vectorizeai/uploads
+      - ./outputs:/var/www/vectorizeai/outputs
+      - ./backups:/var/www/vectorizeai/backups
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=vectorai
+      - DB_PASS=secure_password_here
+      - DB_NAME=vector
+    depends_on:
+      - mysql
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_here
+      MYSQL_DATABASE: vector
+      MYSQL_USER: vectorai
+      MYSQL_PASSWORD: secure_password_here
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./my.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    ports:
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+    restart: unless-stopped
+
+  letsencrypt:
+    image: nginxproxy/acme-companion
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - certs:/etc/nginx/certs
+      - vhost:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - acme:/etc/acme.sh
+    environment:
+      - DEFAULT_EMAIL=admin@yourdomain.com
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  certs:
+  vhost:
+  html:
+  acme:

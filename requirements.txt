@@ -1,0 +1,26 @@
+# Python dependencies for your project
+# Add your required packages here, for example:
+
+# Web frameworks
+# flask==2.3.3
+# django==4.2.5
+
+# Data processing
+# pandas==2.0.3
+# numpy==1.24.3
+
+# HTTP requests
+requests==2.31.0
+
+# JSON processing (usually built-in, but can be useful)
+# ujson==5.8.0
+
+# Database
+# pymysql==1.1.0
+# sqlite3 (built-in)
+
+# Payment processing (if using Stripe in Python)
+stripe==5.5.0
+
+# Add any other packages your Python scripts need
+# Remove the # to uncomment packages you actually use

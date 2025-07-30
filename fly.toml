@@ -1,0 +1,43 @@
+app = "vectrahub"
+primary_region = "cdg"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PATH = "/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  PYTHONPATH = "/var/www/html"
+  APP_ENV = "production"
+  APP_NAME = "VectraHub"
+  APP_URL = "https://vectrahub.fly.dev"
+  SUPABASE_URL = "https://ozjbgmcxocvznfcttaty.supabase.co"
+  UPLOAD_MAX_SIZE = "52428800"
+  SESSION_LIFETIME = "86400"
+  CSRF_TOKEN_EXPIRY = "3600"
+
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "30s"    
+    interval = "20s"        
+    method = "GET"
+    timeout = "10s"         
+    path = "/health.php"    # Now working without skip_db
+    protocol = "http"
+    tls_skip_verify = false
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 1024

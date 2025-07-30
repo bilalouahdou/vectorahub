@@ -1,94 +1,160 @@
 <?php
-// Database Configuration
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', 'Bilal12345@');
-define('DB_NAME', 'vector');
 
-// App Configuration
-$APP_NAME = 'VectraHub';
-$APP_URL = 'https://vectorahub.online'; // Updated domain
-$UPLOAD_DIR = __DIR__ . '/../uploads/';
-$OUTPUT_DIR = __DIR__ . '/../outputs/';
-$PYTHON_SCRIPT = __DIR__ . '/../python/trace_with_tolerance_pil.py';
+// --- Application Settings ---
+define('APP_ENV', getenv('APP_ENV') ?: 'development'); // 'development', 'production'
+define('APP_NAME', getenv('APP_NAME') ?: 'VectraHub');
+define('APP_URL', getenv('APP_URL') ?: 'http://localhost');
 
-// Python API Configuration
-$PYTHON_API_URL = 'http://localhost:5000';
+// --- Database Configuration (Supabase PostgreSQL) ---
+// Prioritize DATABASE_URL if available (e.g., from Fly.io)
+$databaseUrl = getenv('DATABASE_URL');
 
-// Stripe Configuration (Replace with your actual keys)
-$STRIPE_PUBLISHABLE_KEY = 'pk_live_51LEv8eJYJk34NKovrcBUReHSZ1rCRC7wtiN9MBqtZOI0kXKGiSEzAk8p8nvrrKLcwSLJ6VAZxnfIl8Nc3QZ4XGbP00mxRAdzjW';
-$STRIPE_SECRET_KEY = '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';
-$STRIPE_WEBHOOK_SECRET = 'whsec_your_webhook_secret_here';
-
-// Security Configuration
-$CSRF_TOKEN_EXPIRY = 3600; // 1 hour
-$SESSION_LIFETIME = 86400; // 24 hours
-$MAX_LOGIN_ATTEMPTS = 5;
-$LOGIN_LOCKOUT_TIME = 900; // 15 minutes
-
-// File Upload Limits
-$MAX_FILE_SIZE = 50 * 1024 * 1024; // 5MB
-$ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg'];
-
-// Rate Limiting
-$RATE_LIMIT_REQUESTS = 10; // requests per minute
-$RATE_LIMIT_WINDOW = 60; // seconds
-
-// Email Configuration (for notifications)
-$SMTP_HOST = 'smtp.gmail.com';
-$SMTP_PORT = 587;
-$SMTP_USERNAME = 'your-email@gmail.com';
-$SMTP_PASSWORD = 'your-app-password';
-$FROM_EMAIL = 'noreply@vectorahub.online';
-
-// Start session only if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    // Security Headers - Set before starting session
-    session_set_cookie_params([
-        'lifetime' => $SESSION_LIFETIME,
-        'path' => '/',
-        'domain' => '',
-        'secure' => false, // Set to true in production with HTTPS
-        'httponly' => true,
-        'samesite' => 'Strict'
-    ]);
-    
-    session_start();
+if ($databaseUrl) {
+    $dbParts = parse_url($databaseUrl);
+    define('DB_HOST', $dbParts['host']);
+    define('DB_PORT', $dbParts['port'] ?? '5432');
+    define('DB_NAME', ltrim($dbParts['path'], '/'));
+    define('DB_USER', $dbParts['user']);
+    define('DB_PASSWORD', $dbParts['pass']);
+    define('DB_SSLMODE', 'require'); // Supabase requires SSL
+} else {
+    // Fallback to individual environment variables
+    define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+    define('DB_PORT', getenv('DB_PORT') ?: '5432');
+    define('DB_NAME', getenv('DB_NAME') ?: 'postgres');
+    define('DB_USER', getenv('DB_USER') ?: 'postgres');
+    define('DB_PASSWORD', getenv('DB_PASSWORD') ?: ''); // IMPORTANT: Set this via Fly secrets!
+    define('DB_SSLMODE', getenv('DB_SSLMODE') ?: 'prefer'); // 'require' for production, 'prefer' for local
 }
 
-// Generate CSRF token if not exists
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+// --- Supabase API Keys (for client-side if needed, or server-side interactions) ---
+define('SUPABASE_URL', getenv('SUPABASE_URL') ?: 'YOUR_SUPABASE_URL'); // e.g., https://xyz.supabase.co
+define('SUPABASE_ANON_KEY', getenv('SUPABASE_ANON_KEY') ?: 'YOUR_SUPABASE_ANON_KEY');
+define('SUPABASE_SERVICE_ROLE_KEY', getenv('SUPABASE_SERVICE_ROLE_KEY') ?: 'YOUR_SUPABASE_SERVICE_ROLE_KEY'); // Keep this secret!
+
+// --- File Upload Settings ---
+define('UPLOAD_MAX_SIZE', (int)(getenv('UPLOAD_MAX_SIZE') ?: 50 * 1024 * 1024)); // 50 MB
+define('ALLOWED_IMAGE_TYPES', ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']);
+define('UPLOAD_DIR', __DIR__ . '/../uploads/');
+define('OUTPUT_DIR', __DIR__ . '/../outputs/');
+define('TEMP_DIR', __DIR__ . '/../temp/');
+
+// --- Session and Security Settings ---
+define('SESSION_LIFETIME', (int)(getenv('SESSION_LIFETIME') ?: 86400)); // 1 day in seconds
+define('CSRF_TOKEN_EXPIRY', (int)(getenv('CSRF_TOKEN_EXPIRY') ?: 3600)); // 1 hour in seconds
+
+// Configure session
+ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
+session_set_cookie_params(SESSION_LIFETIME);
+
+// Set secure cookie for production
+if (APP_ENV === 'production') {
+    ini_set('session.cookie_secure', 1);
+    ini_set('session.cookie_httponly', 1);
+    ini_set('session.cookie_samesite', 'Lax');
 }
 
-// Create necessary directories
-if (!file_exists($UPLOAD_DIR)) {
-    mkdir($UPLOAD_DIR, 0755, true);
-}
-if (!file_exists($OUTPUT_DIR)) {
-    mkdir($OUTPUT_DIR, 0755, true);
+// --- Error Reporting ---
+if (APP_ENV === 'development') {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+} else {
+    error_reporting(0);
+    ini_set('display_errors', 0);
+    ini_set('log_errors', 1);
+    ini_set('error_log', __DIR__ . '/../logs/php_errors.log');
 }
 
-// Database connection function
+// --- Database Connection Function ---
 function getDBConnection() {
-    try {
-        $pdo = new PDO(
-            "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
-            DB_USER,
-            DB_PASS,
-            [
+    static $pdo = null;
+
+    if ($pdo === null) {
+        $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";sslmode=" . DB_SSLMODE;
+        try {
+            $pdo = new PDO($dsn, DB_USER, DB_PASSWORD, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false
-            ]
-        );
-        return $pdo;
-    } catch (PDOException $e) {
-        error_log("Database connection failed: " . $e->getMessage());
-        return null;
+                PDO::ATTR_EMULATE_PREPARES => false,
+            ]);
+        } catch (PDOException $e) {
+            // Log the error without exposing sensitive details
+            error_log("Database connection failed: " . $e->getMessage());
+            throw new Exception("Database connection failed: " . $e->getMessage());
+        }
+    }
+    return $pdo;
+}
+
+// --- Test Database Connection ---
+function testDatabaseConnection() {
+    try {
+        $pdo = getDBConnection();
+        $stmt = $pdo->query('SELECT version()');
+        $version = $stmt->fetchColumn();
+        return ['success' => true, 'message' => 'Connected to PostgreSQL', 'version' => $version];
+    } catch (Exception $e) {
+        return ['success' => false, 'error' => $e->getMessage()];
     }
 }
 
-// NOTE: Helper functions like isLoggedIn() and isAdmin() are defined in utils.php
-// Do not redeclare them here to avoid conflicts
+// --- Start Session ---
+function startSession() {
+    if (session_status() == PHP_SESSION_NONE) {
+        session_start();
+    }
+}
+
+// --- CSRF Token Functions ---
+function generateCsrfToken() {
+    if (empty($_SESSION['csrf_token']) || $_SESSION['csrf_token_expiry'] < time()) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+        $_SESSION['csrf_token_expiry'] = time() + CSRF_TOKEN_EXPIRY;
+    }
+    return $_SESSION['csrf_token'];
+}
+
+function verifyCsrfToken($token) {
+    if (!isset($_SESSION['csrf_token']) || !isset($_SESSION['csrf_token_expiry'])) {
+        return false;
+    }
+    if ($_SESSION['csrf_token_expiry'] < time()) {
+        return false; // Token expired
+    }
+    return hash_equals($_SESSION['csrf_token'], $token);
+}
+
+// --- Redirection Function ---
+function redirect($url) {
+    header("Location: " . $url);
+    exit();
+}
+
+// --- Logging Function ---
+function logMessage($level, $message) {
+    $logFile = __DIR__ . '/../logs/app.log';
+    $timestamp = date('Y-m-d H:i:s');
+    $logEntry = "[$timestamp] [$level] $message" . PHP_EOL;
+    file_put_contents($logFile, $logEntry, FILE_APPEND);
+}
+
+// Ensure log directory exists
+if (!is_dir(__DIR__ . '/../logs')) {
+    mkdir(__DIR__ . '/../logs', 0755, true);
+}
+
+// Ensure upload, output, temp directories exist
+if (!is_dir(UPLOAD_DIR)) {
+    mkdir(UPLOAD_DIR, 0755, true);
+}
+if (!is_dir(OUTPUT_DIR)) {
+    mkdir(OUTPUT_DIR, 0755, true);
+}
+if (!is_dir(TEMP_DIR)) {
+    mkdir(TEMP_DIR, 0755, true);
+}
+
+// Start session automatically
+startSession();
+
 ?>

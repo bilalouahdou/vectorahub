@@ -1,4 +1,5 @@
 <?php
+require_once '../../config.php';
 require_once '../../utils.php';
 redirectIfNotAdmin();
 
@@ -11,54 +12,8 @@ try {
         throw new Exception('Database connection failed');
     }
     
-    // Create subscription_plans table if it doesn't exist
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS subscription_plans (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            name VARCHAR(255) NOT NULL,
-            price DECIMAL(10,2) NOT NULL,
-            coin_limit INT NOT NULL,
-            features TEXT,
-            active BOOLEAN DEFAULT TRUE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ");
-    
-    // Create user_subscriptions table if it doesn't exist
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS user_subscriptions (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            plan_id INT NOT NULL,
-            start_date DATE NOT NULL,
-            end_date DATE NOT NULL,
-            active BOOLEAN DEFAULT TRUE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-            FOREIGN KEY (plan_id) REFERENCES subscription_plans(id) ON DELETE CASCADE
-        )
-    ");
-    
-    // Insert sample subscription plans if none exist
-    $stmt = $pdo->query("SELECT COUNT(*) FROM subscription_plans");
-    $planCount = $stmt->fetchColumn();
-    
-    if ($planCount == 0) {
-        $samplePlans = [
-            ['Basic Plan', 9.99, 100, 'Basic vectorization, Standard support'],
-            ['Pro Plan', 19.99, 500, 'Advanced vectorization, Priority support, Bulk processing'],
-            ['Enterprise Plan', 49.99, 2000, 'Premium vectorization, 24/7 support, API access, Custom integrations']
-        ];
-        
-        $stmt = $pdo->prepare("
-            INSERT INTO subscription_plans (name, price, coin_limit, features) 
-            VALUES (?, ?, ?, ?)
-        ");
-        
-        foreach ($samplePlans as $plan) {
-            $stmt->execute($plan);
-        }
-    }
+    // Note: Tables should already exist from myv2.sql
+    // No need to create them here as they use PostgreSQL syntax
     
     $page = (int)($_GET['page'] ?? 1);
     $limit = 10;
@@ -71,9 +26,9 @@ try {
     
     if (!empty($status)) {
         if ($status === 'active') {
-            $conditions[] = "us.active = 1 AND us.end_date >= CURDATE()";
+            $conditions[] = "us.active = TRUE AND us.end_date >= CURRENT_DATE";
         } elseif ($status === 'expired') {
-            $conditions[] = "us.active = 0 OR us.end_date < CURDATE()";
+            $conditions[] = "us.active = FALSE OR us.end_date < CURRENT_DATE";
         }
     }
     

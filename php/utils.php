@@ -29,27 +29,99 @@ function validatePassword($password) {
     return preg_match($pattern, $password);
 }
 
+// --- Database Connection Alias ---
+// This function acts as an alias for getDBConnection defined in config.php
+// to maintain compatibility with existing code that calls connectDB().
+function connectDB() {
+    return getDBConnection();
+}
+
 // --- Authentication and Authorization ---
 function isLoggedIn() {
     return isset($_SESSION['user_id']);
 }
 
 function isAdmin() {
-    return isLoggedIn() && isset($_SESSION['user_role']) && $_SESSION['user_role'] === 'admin';
+    return isLoggedIn() && isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
+}
+
+function redirectIfNotAuth() {
+    if (!isLoggedIn()) {
+        redirect('login.php');
+    }
+}
+
+function redirectIfNotAdmin() {
+    if (!isAdmin()) {
+        redirect('dashboard.php'); // Or an unauthorized access page
+    }
 }
 
 function getUserData() {
     if (isLoggedIn()) {
         return [
             'id' => $_SESSION['user_id'],
-            'full_name' => $_SESSION['user_full_name'],
-            'email' => $_SESSION['user_email'],
-            'role' => $_SESSION['user_role'],
+            'full_name' => $_SESSION['user_name'], // Standardized to user_name
+            'email' => $_SESSION['user_email'] ?? null, // Assuming email might not always be in session
+            'role' => $_SESSION['role'], // Standardized to role
             'profile_image' => $_SESSION['user_profile_image'] ?? null
         ];
     }
     return null;
 }
+
+// --- Coin and Subscription Management ---
+function getUserCoinsRemaining($userId) {
+    try {
+        $pdo = getDBConnection();
+        // Get the coin_limit from the user's active subscription plan
+        $stmt = $pdo->prepare("
+            SELECT sp.coin_limit
+            FROM user_subscriptions us
+            JOIN subscription_plans sp ON us.plan_id = sp.id
+            WHERE us.user_id = ? AND us.active = TRUE
+            ORDER BY us.start_date DESC
+            LIMIT 1
+        ");
+        $stmt->execute([$userId]);
+        $subscription = $stmt->fetch(PDO::FETCH_ASSOC);
+        $coinLimit = $subscription['coin_limit'] ?? 0;
+
+        // Sum coins used by the user
+        $stmt = $pdo->prepare("
+            SELECT COALESCE(SUM(coins_used), 0) AS total_used
+            FROM coin_usage
+            WHERE user_id = ?
+        ");
+        $stmt->execute([$userId]);
+        $usedCoins = $stmt->fetchColumn(); // fetchColumn returns false if no rows, COALESCE handles null
+
+        return max(0, $coinLimit - $usedCoins);
+    } catch (Exception $e) {
+        error_log("Error getting user coins remaining for user $userId: " . $e->getMessage());
+        return 0; // Default to 0 on error
+    }
+}
+
+function getCurrentUserSubscription($userId) {
+    try {
+        $pdo = getDBConnection();
+        $stmt = $pdo->prepare("
+            SELECT sp.name, sp.coin_limit, us.start_date, us.end_date
+            FROM user_subscriptions us
+            JOIN subscription_plans sp ON us.plan_id = sp.id
+            WHERE us.user_id = ? AND us.active = TRUE
+            ORDER BY us.start_date DESC
+            LIMIT 1
+        ");
+        $stmt->execute([$userId]);
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: ['name' => 'Free', 'coin_limit' => 0]; // Default to Free
+    } catch (Exception $e) {
+        error_log("Error getting current user subscription for user $userId: " . $e->getMessage());
+        return ['name' => 'Free', 'coin_limit' => 0]; // Default to Free on error
+    }
+}
+
 
 // --- Logging Functions ---
 function logActivity($type, $description, $userId = null) {
@@ -137,7 +209,7 @@ function generateUniqueFilename($originalFilename) {
 }
 
 // --- JSON Response Helper ---
-function sendJsonResponse($data, $statusCode = 200) {
+function jsonResponse($data, $statusCode = 200) {
     http_response_code($statusCode);
     echo json_encode($data);
     exit();
@@ -146,7 +218,7 @@ function sendJsonResponse($data, $statusCode = 200) {
 // --- Error Handling Helper ---
 function handleError($message, $statusCode = 500) {
     logMessage('ERROR', $message);
-    sendJsonResponse(['success' => false, 'message' => $message], $statusCode);
+    jsonResponse(['success' => false, 'message' => $message], $statusCode);
 }
 
 ?>

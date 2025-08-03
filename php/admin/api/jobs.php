@@ -1,4 +1,5 @@
 <?php
+require_once '../../config.php';
 require_once '../../utils.php';
 redirectIfNotAdmin();
 
@@ -62,58 +63,8 @@ try {
     $stmt->execute($params);
     $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // If no jobs exist, create some sample data
-    if (empty($jobs) && empty($status) && empty($date)) {
-        // Insert sample jobs if none exist
-        $sampleJobs = [
-            [
-                'user_id' => 1,
-                'original_filename' => 'sample_logo.png',
-                'status' => 'done',
-                'created_at' => date('Y-m-d H:i:s', strtotime('-1 day'))
-            ],
-            [
-                'user_id' => 1,
-                'original_filename' => 'test_image.jpg',
-                'status' => 'processing',
-                'created_at' => date('Y-m-d H:i:s', strtotime('-2 hours'))
-            ],
-            [
-                'user_id' => 1,
-                'original_filename' => 'failed_upload.png',
-                'status' => 'failed',
-                'created_at' => date('Y-m-d H:i:s', strtotime('-3 hours'))
-            ]
-        ];
-        
-        foreach ($sampleJobs as $job) {
-            $stmt = $pdo->prepare("
-                INSERT INTO image_jobs (user_id, original_filename, status, created_at) 
-                VALUES (?, ?, ?, ?)
-            ");
-            $stmt->execute([
-                $job['user_id'],
-                $job['original_filename'],
-                $job['status'],
-                $job['created_at']
-            ]);
-            
-            $jobId = $pdo->lastInsertId();
-            
-            // Add coin usage record
-            $stmt = $pdo->prepare("
-                INSERT INTO coin_usage (user_id, image_job_id, coins_used) 
-                VALUES (?, ?, 1)
-            ");
-            $stmt->execute([$job['user_id'], $jobId]);
-        }
-        
-        // Re-fetch jobs
-        $stmt = $pdo->prepare($query);
-        $stmt->execute($params);
-        $jobs = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $totalJobs = count($jobs);
-    }
+    // Note: Jobs will be empty if no users exist or no jobs have been created
+    // This is normal for a new system
     
     // Ensure coins_used has a default value
     foreach ($jobs as &$job) {

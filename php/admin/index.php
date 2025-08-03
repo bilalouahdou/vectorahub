@@ -1,6 +1,11 @@
 <?php
-session_start();
+require_once '../config.php';
 require_once '../utils.php';
+
+// Start session after config is loaded
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Check if user is logged in and is admin
 if (!isset($_SESSION['user_id'])) {
@@ -302,8 +307,8 @@ $userInfo = $stmt->fetch();
                         <a href="../../dashboard.php" class="nav-link">
                             <i class="fas fa-arrow-left"></i> Back to Dashboard
                         </a>
-                        <a href="../php/auth/logout.php" class="nav-link text-warning">
-                            <i class="fas fa-sign-out-alt"></i> Logout
+                                        <a href="../auth/logout.php" class="nav-link text-warning">
+                    <i class="fas fa-sign-out-alt"></i> Logout
                         </a>
                     </div>
                 </div>

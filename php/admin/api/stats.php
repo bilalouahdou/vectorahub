@@ -1,4 +1,5 @@
 <?php
+require_once '../../config.php';
 require_once '../../utils.php';
 redirectIfNotAdmin();
 
@@ -19,18 +20,18 @@ try {
     $stmt = $pdo->query("SELECT COUNT(*) FROM image_jobs");
     $totalJobs = $stmt->fetchColumn();
     
-    // Get active subscriptions
+    // Get active subscriptions (PostgreSQL syntax)
     $stmt = $pdo->query("
         SELECT COUNT(*) FROM user_subscriptions 
-        WHERE active = 1 AND end_date >= CURDATE()
+        WHERE active = TRUE AND end_date >= CURRENT_DATE
     ");
     $activeSubscriptions = $stmt->fetchColumn();
     
-    // Get monthly revenue (current month)
+    // Get monthly revenue (current month) - PostgreSQL syntax
     $stmt = $pdo->query("
         SELECT COALESCE(SUM(amount), 0) FROM payments 
-        WHERE MONTH(paid_at) = MONTH(CURRENT_DATE()) 
-        AND YEAR(paid_at) = YEAR(CURRENT_DATE())
+        WHERE EXTRACT(MONTH FROM paid_at) = EXTRACT(MONTH FROM CURRENT_DATE)
+        AND EXTRACT(YEAR FROM paid_at) = EXTRACT(YEAR FROM CURRENT_DATE)
     ");
     $monthlyRevenue = $stmt->fetchColumn();
     

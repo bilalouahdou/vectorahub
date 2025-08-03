@@ -1,5 +1,10 @@
 <?php
+require_once 'php/config.php';
 require_once 'php/utils.php';
+
+// Start session and generate CSRF token
+startSession();
+$csrfToken = generateCsrfToken();
 
 // Redirect if already logged in
 if (isLoggedIn()) {
@@ -136,7 +141,7 @@ if (isLoggedIn()) {
             
             <main class="auth-body">
                 <form id="loginForm" novalidate>
-                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                     
                     <!-- Email Field -->
                     <div class="form-floating mb-3">

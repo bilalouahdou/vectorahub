@@ -4,6 +4,8 @@ ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
 require_once 'utils.php';
+require_once 'config.php'; // Ensure config is loaded for getDBConnection
+
 redirectIfNotAuth();
 
 header('Content-Type: application/json');
@@ -13,31 +15,33 @@ $limit = intval($_GET['limit'] ?? 10);
 $offset = ($page - 1) * $limit;
 
 try {
-    $pdo = connectDB();
+    $pdo = getDBConnection(); // Use getDBConnection from config.php
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION); // Enable exceptions
     $userId = $_SESSION['user_id'] ?? 0;
     
     if (!$userId) {
         jsonResponse(['error' => 'User not authenticated'], 401);
     }
     
-    // Get total count with better error handling
+    // Get total count
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM image_jobs WHERE user_id = ?");
     $stmt->execute([$userId]);
     $total = $stmt->fetchColumn() ?: 0;
     
-    // Get jobs with simpler query to avoid JOIN issues
+    // Get jobs with coins_used by joining with coin_usage
     $stmt = $pdo->prepare("
         SELECT 
-            id,
-            status,
-            created_at,
-            original_image_path,
-            output_svg_path,
-            original_filename,
-            1 as coins_used
-        FROM image_jobs 
-        WHERE user_id = ?
-        ORDER BY created_at DESC
+            ij.id,
+            ij.status,
+            ij.created_at,
+            ij.original_image_path,
+            ij.output_svg_path,
+            ij.original_filename,
+            COALESCE(cu.coins_used, 0) AS coins_used -- Use COALESCE to default to 0 if no coin_usage record
+        FROM image_jobs ij
+        LEFT JOIN coin_usage cu ON ij.id = cu.image_job_id AND ij.user_id = cu.user_id
+        WHERE ij.user_id = ?
+        ORDER BY ij.created_at DESC
         LIMIT ? OFFSET ?
     ");
     $stmt->execute([$userId, $limit, $offset]);
@@ -46,7 +50,7 @@ try {
     // Format the jobs data safely
     foreach ($jobs as &$job) {
         $job['id'] = (int)($job['id'] ?? 0);
-        $job['coins_used'] = 1; // Default value
+        $job['coins_used'] = (int)($job['coins_used'] ?? 0); // Ensure it's an integer
         $job['original_filename'] = $job['original_filename'] ?: 'Unknown';
     }
     

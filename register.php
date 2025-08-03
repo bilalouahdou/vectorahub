@@ -1,5 +1,10 @@
 <?php
+require_once 'php/config.php';
 require_once 'php/utils.php';
+
+// Start session and generate CSRF token
+startSession();
+$csrfToken = generateCsrfToken();
 
 // Redirect if already logged in
 if (isLoggedIn()) {
@@ -187,7 +192,7 @@ if (isLoggedIn()) {
                 </div>
                 
                 <form id="registerForm" novalidate>
-                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo $csrfToken; ?>">
                     
                     <!-- Full Name Field -->
                     <div class="form-floating mb-3">
@@ -222,7 +227,7 @@ if (isLoggedIn()) {
                         <div class="password-strength">
                             <div class="password-strength-bar" id="passwordStrengthBar"></div>
                         </div>
-                        <div id="passwordHelp" class="form-text">Minimum 8 characters with letters and numbers.</div>
+                        <div id="passwordHelp" class="form-text">Minimum 8 characters with uppercase, lowercase, and number.</div>
                     </div>
                     
                     <!-- Confirm Password Field with Toggle -->
@@ -362,6 +367,22 @@ if (isLoggedIn()) {
                 isValid = false;
             }
             
+            // Check for uppercase, lowercase, and number
+            if (!/[A-Z]/.test(password)) {
+                errors.push('Password must contain at least one uppercase letter.');
+                isValid = false;
+            }
+            
+            if (!/[a-z]/.test(password)) {
+                errors.push('Password must contain at least one lowercase letter.');
+                isValid = false;
+            }
+            
+            if (!/\d/.test(password)) {
+                errors.push('Password must contain at least one number.');
+                isValid = false;
+            }
+            
             if (password !== confirmPassword) {
                 errors.push('Passwords do not match.');
                 isValid = false;
@@ -410,6 +431,10 @@ if (isLoggedIn()) {
                 
                 const result = await response.json();
                 
+                // Debug logging
+                console.log('Registration response:', result);
+                console.log('Response status:', response.status);
+                
                 if (result.success) {
                     showAlert('success', '✅ Account created successfully! You can now sign in.');
                     setTimeout(() => {
@@ -419,7 +444,7 @@ if (isLoggedIn()) {
                     if (result.errors && Array.isArray(result.errors)) {
                         showAlert('danger', '❌ Please fix the following errors:\n• ' + result.errors.join('\n• '));
                     } else {
-                        showAlert('danger', '❌ ' + (result.error || 'Registration failed. Please try again.'));
+                        showAlert('danger', '❌ ' + (result.message || result.error || 'Registration failed. Please try again.'));
                     }
                 }
             } catch (error) {

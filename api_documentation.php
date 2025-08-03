@@ -1,3 +1,4 @@
+<?php require_once 'php/config.php'; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,7 +11,6 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" rel="stylesheet">
 </head>
 <body>
-    <?php require_once 'php/config.php'; ?>
     
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">

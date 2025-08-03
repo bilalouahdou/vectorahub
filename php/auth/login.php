@@ -1,5 +1,11 @@
 <?php
 require_once '../utils.php';
+require_once '../config.php'; // Ensure config is loaded for getDBConnection
+
+// Start session if not already started
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!verifyCsrfToken($_POST['csrf_token'] ?? '')) {
@@ -14,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        $pdo = connectDB();
+        $pdo = getDBConnection(); // Use getDBConnection from config.php
         $stmt = $pdo->prepare("SELECT id, full_name, email, password_hash, role FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -23,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             session_regenerate_id(true);
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_name'] = $user['full_name'];
-            $_SESSION['role'] = $user['role'];
+            $_SESSION['role'] = $user['role']; // Standardize to 'role'
             
             jsonResponse(['success' => 'Login successful', 'redirect' => 'dashboard.php']);
         } else {

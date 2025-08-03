@@ -1,30 +1,17 @@
 <?php
 require_once '../../utils.php';
+require_once '../../config.php'; // Ensure config is loaded for getDBConnection
+
 redirectIfNotAdmin();
 
 header('Content-Type: application/json');
 
 try {
-    $pdo = connectDB();
+    $pdo = getDBConnection(); // Use getDBConnection from config.php
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION); // Enable exceptions for better error handling
     
-    if (!$pdo) {
-        throw new Exception('Database connection failed');
-    }
-    
-    // Create users table if it doesn't exist
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            full_name VARCHAR(255) NOT NULL,
-            email VARCHAR(255) UNIQUE NOT NULL,
-            password_hash VARCHAR(255) NOT NULL,
-            role ENUM('user', 'admin') DEFAULT 'user',
-            status ENUM('active', 'inactive') DEFAULT 'active',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            coins INT DEFAULT 0
-        )
-    ");
+    // Note: Users table should already exist from myv2.sql
+    // No need to create it here as it uses PostgreSQL syntax
     
     $page = (int)($_GET['page'] ?? 1);
     $limit = 10;
@@ -57,47 +44,36 @@ try {
     $stmt->execute($params);
     $totalUsers = $stmt->fetchColumn();
     
-    // Get users with job count from image_jobs table (not jobs table)
+    // Get users with job count and current plan info
     $query = "
         SELECT 
             u.id, 
             u.full_name, 
             u.email, 
             u.role, 
-            u.created_at, 
-            u.coins,
-            COUNT(ij.id) as total_jobs
+            COALESCE(sp.name, 'N/A') AS current_plan_name,
+            COALESCE(sp.coin_limit, 0) AS current_plan_coin_limit,
+            COUNT(ij.id) AS total_jobs
         FROM users u 
+        LEFT JOIN user_subscriptions us ON u.id = us.user_id AND us.active = TRUE
+        LEFT JOIN subscription_plans sp ON us.plan_id = sp.id
         LEFT JOIN image_jobs ij ON u.id = ij.user_id
         $whereClause 
-        GROUP BY u.id, u.full_name, u.email, u.role, u.created_at, u.coins
-        ORDER BY u.created_at DESC 
+        GROUP BY u.id, u.full_name, u.email, u.role, sp.name, sp.coin_limit
+        ORDER BY u.id DESC 
         LIMIT $limit OFFSET $offset
     ";
     $stmt = $pdo->prepare($query);
-    $stmt->execute($params);
+    $stmt->execute(array_merge($params, [$limit, $offset]));
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // If no users exist, create a sample admin user
-    if (empty($users) && empty($search) && empty($filter)) {
-        $hashedPassword = password_hash('admin123', PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("
-            INSERT INTO users (full_name, email, password_hash, role) 
-            VALUES (?, ?, ?, 'admin')
-        ");
-        $stmt->execute(['Admin User', 'admin@vectorizeai.com', $hashedPassword]);
-        
-        // Re-fetch users
-        $stmt = $pdo->prepare($query);
-        $stmt->execute($params);
-        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $totalUsers = 1;
-    }
-    
-    // Add a default status for display purposes
+    // Add a default status for display purposes and calculate coins remaining
     foreach ($users as &$user) {
-        $user['status'] = 'active'; // Default status since column doesn't exist
-        $user['joined'] = $user['created_at']; // Alias for display
+        $user['status'] = 'active'; // Default status for display
+        $user['joined'] = 'N/A'; // No created_at column in users table
+        $user['created_at'] = 'N/A'; // No created_at column in users table
+        // Calculate coins remaining for each user
+        $user['coins_remaining'] = getUserCoinsRemaining($user['id']);
     }
     
     // Calculate pagination
@@ -109,7 +85,7 @@ try {
         'pagination' => [
             'current_page' => $page,
             'total_pages' => $totalPages,
-            'total_users' => $totalUsers,
+            'total_users' => (int)$totalUsers,
             'per_page' => $limit
         ]
     ]);

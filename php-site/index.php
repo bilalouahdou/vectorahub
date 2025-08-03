@@ -1,3 +1,9 @@
+<?php 
+require_once 'php/config.php';
+require_once 'php/utils.php';
+
+// isLoggedIn function is now in utils.php
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -57,16 +63,6 @@
     </script>
 </head>
 <body>
-    <?php 
-    require_once 'php/config.php';
-    require_once 'php/utils.php';
-    
-    if (!function_exists('isLoggedIn')) {
-        function isLoggedIn() {
-            return isset($_SESSION['user_id']);
-        }
-    }
-    ?>
     
     <!-- Skip Navigation for Accessibility -->
     <a href="#main-content" class="visually-hidden-focusable">Skip to main content</a>
@@ -105,7 +101,7 @@
                                 <a class="nav-link" href="dashboard.php" role="menuitem">Dashboard</a>
                             </li>
                             <li class="nav-item" role="none">
-                                <a class="nav-link" href="php/auth/logout.php" role="menuitem">Logout</a>
+                                <a class="nav-link" href="../auth/logout.php" role="menuitem">Logout</a>
                             </li>
                         <?php else: ?>
                             <li class="nav-item" role="none">

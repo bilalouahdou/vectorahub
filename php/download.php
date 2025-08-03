@@ -1,5 +1,10 @@
 <?php
-session_start();
+require_once __DIR__ . '/config.php';
+
+// Start session after config is loaded
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Disable HTML error output and force JSON/proper responses
 ini_set('display_errors', 0);
@@ -75,7 +80,6 @@ if (!file_exists($filePath)) {
     if ($jobId > 0) {
         // Try to get the file from the database
         try {
-            require_once __DIR__ . '/config.php';
             require_once __DIR__ . '/utils.php';
             
             $pdo = connectDB();
@@ -108,16 +112,16 @@ if (!file_exists($filePath)) {
         // Create a simple placeholder SVG
         $placeholderSvg = <<<SVG
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-                <svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
-                <rect width="200" height="200" fill="#f0f0f0"/>
-                <text x="100" y="100" font-family="Arial" font-size="14" text-anchor="middle">
-                    SVG file not found
-                </text>
-                <text x="100" y="120" font-family="Arial" font-size="12" text-anchor="middle">
-                    Job ID: {$jobId}
-                </text>
-                </svg>
-                SVG;
+<svg width="200" height="200" xmlns="http://www.w3.org/2000/svg">
+<rect width="200" height="200" fill="#f0f0f0"/>
+<text x="100" y="100" font-family="Arial" font-size="14" text-anchor="middle">
+    SVG file not found
+</text>
+<text x="100" y="120" font-family="Arial" font-size="12" text-anchor="middle">
+    Job ID: {$jobId}
+</text>
+</svg>
+SVG;
         
         // Save the placeholder
         file_put_contents($filePath, $placeholderSvg);

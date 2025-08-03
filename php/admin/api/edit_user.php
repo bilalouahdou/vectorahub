@@ -1,6 +1,6 @@
 <?php
 require_once '../../utils.php';
-require_once '../../config.php';
+require_once '../../config.php'; // Ensure config is loaded for getDBConnection
 
 // Ensure user is admin
 redirectIfNotAdmin();
@@ -17,19 +17,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     }
 
     try {
-        $pdo = connectDB();
+        $pdo = getDBConnection(); // Use getDBConnection from config.php
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         $stmt = $pdo->prepare("
             SELECT 
-                id,
-                full_name,
-                email,
-                role,
-                coins,
-                created_at
-            FROM users 
-            WHERE id = ?
+                u.id,
+                u.full_name,
+                u.email,
+                u.role,
+                u.created_at,
+                sp.name AS current_plan_name,
+                sp.coin_limit AS current_plan_coin_limit
+            FROM users u 
+            LEFT JOIN user_subscriptions us ON u.id = us.user_id AND us.active = TRUE
+            LEFT JOIN subscription_plans sp ON us.plan_id = sp.id
+            WHERE u.id = ?
         ");
         $stmt->execute([$userId]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -38,6 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             echo json_encode(['success' => false, 'error' => 'User not found']);
             exit;
         }
+
+        // Calculate current coins remaining for display purposes
+        $user['coins_remaining'] = getUserCoinsRemaining($userId);
 
         echo json_encode(['success' => true, 'user' => $user]);
 
@@ -59,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     $full_name = trim($input['full_name'] ?? '');
     $email = trim($input['email'] ?? '');
     $role = $input['role'] ?? 'user';
-    $coins = (int)($input['coins'] ?? 0);
+    // Removed direct 'coins' update as it's now subscription-based
 
     if (empty($full_name) || empty($email)) {
         echo json_encode(['success' => false, 'error' => 'Name and email are required']);
@@ -76,13 +82,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     }
 
-    if ($coins < 0) {
-        echo json_encode(['success' => false, 'error' => 'Coins cannot be negative']);
-        exit;
-    }
-
     try {
-        $pdo = connectDB();
+        $pdo = getDBConnection(); // Use getDBConnection from config.php
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $pdo->beginTransaction();
 
@@ -104,27 +105,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             exit;
         }
 
-        // Update user
+        // Update user (excluding coins)
         $stmt = $pdo->prepare("
             UPDATE users 
-            SET full_name = ?, email = ?, role = ?, coins = ?
+            SET full_name = ?, email = ?, role = ?
             WHERE id = ?
         ");
-        $stmt->execute([$full_name, $email, $role, $coins, $user_id]);
+        $stmt->execute([$full_name, $email, $role, $user_id]);
 
-        // Log the action if admin_logs table exists
-        try {
-            $adminId = $_SESSION['user_id'] ?? 1;
-            $stmt = $pdo->prepare("
-                INSERT INTO admin_logs (admin_id, action, timestamp)
-                VALUES (?, ?, NOW())
-            ");
-            $action = "Updated user ID: $user_id - Name: $full_name, Email: $email, Role: $role, Coins: $coins";
-            $stmt->execute([$adminId, $action]);
-        } catch (Exception $e) {
-            // Log error but don't fail the main operation
-            error_log("Failed to log admin action: " . $e->getMessage());
-        }
+        // Log the action
+        logAdminAction($_SESSION['user_id'] ?? null, "Updated user ID: $user_id - Name: $full_name, Email: $email, Role: $role");
 
         $pdo->commit();
         echo json_encode(['success' => true, 'message' => 'User updated successfully']);
@@ -134,13 +124,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $pdo->rollBack();
         }
         error_log("Database error in edit_user.php (POST): " . $e->getMessage());
-        echo json_encode(['success' => false, 'error' => 'Database error occurred']);
+        echo json_encode(['success' => false, 'error' => 'Database error occurred: ' . $e->getMessage()]);
     } catch (Exception $e) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
         error_log("Error in edit_user.php (POST): " . $e->getMessage());
-        echo json_encode(['success' => false, 'error' => 'An error occurred']);
+        echo json_encode(['success' => false, 'error' => 'An error occurred: ' . $e->getMessage()]);
     }
 
 } else {

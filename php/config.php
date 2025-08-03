@@ -33,7 +33,7 @@ define('SUPABASE_ANON_KEY', getenv('SUPABASE_ANON_KEY') ?: 'YOUR_SUPABASE_ANON_K
 define('SUPABASE_SERVICE_ROLE_KEY', getenv('SUPABASE_SERVICE_ROLE_KEY') ?: 'YOUR_SUPABASE_SERVICE_ROLE_KEY'); // Keep this secret!
 
 // --- File Upload Settings ---
-define('UPLOAD_MAX_SIZE', (int)(getenv('UPLOAD_MAX_SIZE') ?: 50 * 1024 * 1024)); // 50 MB
+define('UPLOAD_MAX_SIZE', (int)(getenv('UPLOAD_MAX_SIZE') ?: 5 * 1024 * 1024)); // 5 MB
 define('ALLOWED_IMAGE_TYPES', ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']);
 define('UPLOAD_DIR', __DIR__ . '/../uploads/');
 define('OUTPUT_DIR', __DIR__ . '/../outputs/');
@@ -43,15 +43,17 @@ define('TEMP_DIR', __DIR__ . '/../temp/');
 define('SESSION_LIFETIME', (int)(getenv('SESSION_LIFETIME') ?: 86400)); // 1 day in seconds
 define('CSRF_TOKEN_EXPIRY', (int)(getenv('CSRF_TOKEN_EXPIRY') ?: 3600)); // 1 hour in seconds
 
-// Configure session
-ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
-session_set_cookie_params(SESSION_LIFETIME);
+// Configure session (only if session hasn't started and headers haven't been sent)
+if (session_status() == PHP_SESSION_NONE && !headers_sent()) {
+    ini_set('session.gc_maxlifetime', SESSION_LIFETIME);
+    session_set_cookie_params(SESSION_LIFETIME);
 
-// Set secure cookie for production
-if (APP_ENV === 'production') {
-    ini_set('session.cookie_secure', 1);
-    ini_set('session.cookie_httponly', 1);
-    ini_set('session.cookie_samesite', 'Lax');
+    // Set secure cookie for production
+    if (APP_ENV === 'production') {
+        ini_set('session.cookie_secure', 1);
+        ini_set('session.cookie_httponly', 1);
+        ini_set('session.cookie_samesite', 'Lax');
+    }
 }
 
 // --- Error Reporting ---
@@ -107,7 +109,7 @@ function startSession() {
 
 // --- CSRF Token Functions ---
 function generateCsrfToken() {
-    if (empty($_SESSION['csrf_token']) || $_SESSION['csrf_token_expiry'] < time()) {
+    if (empty($_SESSION['csrf_token']) || ($_SESSION['csrf_token_expiry'] ?? 0) < time()) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         $_SESSION['csrf_token_expiry'] = time() + CSRF_TOKEN_EXPIRY;
     }

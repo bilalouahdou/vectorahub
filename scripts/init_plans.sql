@@ -10,4 +10,4 @@ INSERT INTO users (full_name, email, password_hash, role) VALUES
 
 -- Assign Free plan to admin user
 INSERT INTO user_subscriptions (user_id, plan_id, start_date, end_date) VALUES 
-(1, 1, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR));
+(1, 1, CURRENT_DATE, CURRENT_DATE + INTERVAL '1 year');

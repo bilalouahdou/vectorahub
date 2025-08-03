@@ -1,4 +1,5 @@
 <?php
+require_once 'php/config.php';
 require_once 'php/utils.php';
 redirectIfNotAuth();
 
@@ -155,7 +156,7 @@ function calculateYearlySavings($monthlyPrice) {
                                         </div>
                                         <?php if ($plan['price'] > 0): ?>
                                             <h4 class="text-accent mb-2 monthly-price" data-plan-id="<?php echo $plan['id']; ?>">
-                                                <?php echo formatCurrency($plan['price']); ?>
+                                                $<?php echo number_format($plan['price'], 2); ?>
                                                 <small class="text-muted">/month</small>
                                             </h4>
                                         <?php else: ?>
@@ -182,11 +183,11 @@ function calculateYearlySavings($monthlyPrice) {
                                                 <span class="badge bg-success">Save 20%</span>
                                             </div>
                                             <h4 class="text-accent mb-1 yearly-price" data-plan-id="<?php echo $plan['id']; ?>">
-                                                <?php echo formatCurrency(calculateYearlyPrice($plan['price'])); ?>
+                                                $<?php echo number_format(calculateYearlyPrice($plan['price']), 2); ?>
                                                 <small class="text-muted">/year</small>
                                             </h4>
                                             <p class="small text-success mb-2">
-                                                Save <?php echo formatCurrency(calculateYearlySavings($plan['price'])); ?> per year!
+                                                Save $<?php echo number_format(calculateYearlySavings($plan['price']), 2); ?> per year!
                                             </p>
                                             
                                             <?php if ($plan['id'] == $currentPlanId): ?>

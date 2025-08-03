@@ -7,42 +7,9 @@ header('Content-Type: application/json');
 require_once '../config.php';
 require_once '../utils.php';
 
-function sendJsonResponse($data, $status = 200) {
-    http_response_code($status);
-    echo json_encode($data);
-    exit();
-}
-
-function logError($message, $context = []) {
-    error_log(date('Y-m-d H:i:s') . ' [REGISTER] ' . $message . ' ' . json_encode($context));
-}
-
-function logActivity($action, $message, $user_id = null) {
-    error_log(date('Y-m-d H:i:s') . ' [' . strtoupper($action) . '] ' . $message . ($user_id ? ' User ID: ' . $user_id : ''));
-}
-
-function logSystemEvent($action, $message, $user_id = null, $ip_address = null) {
-    error_log(date('Y-m-d H:i:s') . ' [' . strtoupper($action) . '] ' . $message . ($user_id ? ' User ID: ' . $user_id : '') . ($ip_address ? ' IP Address: ' . $ip_address : ''));
-}
-
-function setCORSHeaders() {
-    header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Methods: POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type');
-}
-
-function handleError($message, $code = 400) {
-    logError($message);
-    sendJsonResponse(['error' => $message], $code);
-}
-
-function isValidEmail($email) {
-    return filter_var($email, FILTER_VALIDATE_EMAIL);
-}
-
-function validatePassword($password) {
-    return preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/', $password);
-}
+// Functions from utils.php are now available globally or via explicit calls
+// No need to redefine jsonResponse, logActivity, logSystemEvent, validateEmail, validatePassword
+// setCORSHeaders is also in utils.php if needed, but typically handled by web server config for production.
 
 // Handle preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -50,12 +17,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-setCORSHeaders();
+// setCORSHeaders(); // Uncomment if CORS is an issue and not handled by web server
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Verify CSRF token
     if (!isset($_POST['csrf_token']) || !verifyCsrfToken($_POST['csrf_token'])) {
-        sendJsonResponse(['success' => false, 'message' => 'Invalid CSRF token.'], 403);
+        jsonResponse(['success' => false, 'message' => 'Invalid CSRF token.'], 403);
         exit();
     }
 
@@ -66,38 +33,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Basic validation
     if (empty($fullName) || empty($email) || empty($password) || empty($confirmPassword)) {
-        sendJsonResponse(['success' => false, 'message' => 'All fields are required.'], 400);
+        jsonResponse(['success' => false, 'message' => 'All fields are required.'], 400);
         exit();
     }
 
-    if (!isValidEmail($email)) {
-        sendJsonResponse(['success' => false, 'message' => 'Invalid email format.'], 400);
+    if (!validateEmail($email)) { // Using validateEmail from utils.php
+        jsonResponse(['success' => false, 'message' => 'Invalid email format.'], 400);
         exit();
     }
 
-    if (!validatePassword($password)) {
-        sendJsonResponse(['success' => false, 'message' => 'Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.'], 400);
+    if (!validatePassword($password)) { // Using validatePassword from utils.php
+        jsonResponse(['success' => false, 'message' => 'Password must be at least 8 characters long and include an uppercase letter, a lowercase letter, a number, and a special character.'], 400);
         exit();
     }
 
     if ($password !== $confirmPassword) {
-        sendJsonResponse(['success' => false, 'message' => 'Passwords do not match.'], 400);
+        jsonResponse(['success' => false, 'message' => 'Passwords do not match.'], 400);
         exit();
     }
 
     try {
-        $pdo = getDBConnection();
+        $pdo = getDBConnection(); // Use getDBConnection from config.php
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION); // Enable exceptions
 
         // Check if user already exists
         $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
         $stmt->execute([':email' => $email]);
         if ($stmt->fetch()) {
-            sendJsonResponse(['success' => false, 'message' => 'User with this email already exists.'], 409);
+            jsonResponse(['success' => false, 'message' => 'User with this email already exists.'], 409);
             exit();
         }
 
         // Hash password
-        $passwordHash = password_hash($password, PASSWORD_BCRYPT);
+        $passwordHash = hashPassword($password); // Using hashPassword from utils.php
+
+        $pdo->beginTransaction();
 
         // Insert new user
         $stmt = $pdo->prepare("INSERT INTO users (full_name, email, password_hash, role) VALUES (:full_name, :email, :password_hash, 'user') RETURNING id");
@@ -109,11 +79,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $userId = $stmt->fetchColumn();
 
         if ($userId) {
-            // Assign a default free subscription plan (e.g., plan_id 1)
-            // You might want to fetch the actual default free plan ID from the database
-            $defaultFreePlanId = 1; // Assuming plan ID 1 is the free plan
+            // Assign a default free subscription plan
+            // First, find the ID of the 'Free' plan
+            $stmt = $pdo->prepare("SELECT id FROM subscription_plans WHERE name = 'Free' LIMIT 1");
+            $stmt->execute();
+            $freePlan = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            $stmt = $pdo->prepare("INSERT INTO user_subscriptions (user_id, plan_id, active, start_date, end_date, is_free_from_coupon) VALUES (:user_id, :plan_id, TRUE, CURRENT_DATE, CURRENT_DATE + INTERVAL '1 year', TRUE)");
+            $defaultFreePlanId = $freePlan['id'] ?? null;
+
+            if ($defaultFreePlanId === null) {
+                // Try to find any plan with price 0 as fallback
+                $stmt = $pdo->prepare("SELECT id FROM subscription_plans WHERE price = 0 LIMIT 1");
+                $stmt->execute();
+                $freePlan = $stmt->fetch(PDO::FETCH_ASSOC);
+                $defaultFreePlanId = $freePlan['id'] ?? null;
+                
+                if ($defaultFreePlanId === null) {
+                    // If still no free plan found, create a basic free plan
+                    $stmt = $pdo->prepare("INSERT INTO subscription_plans (name, price, coin_limit, features) VALUES ('Free', 0.00, 10, '10 vectorizations per month, Standard processing, Basic support') RETURNING id");
+                    $stmt->execute();
+                    $defaultFreePlanId = $stmt->fetchColumn();
+                    logMessage('INFO', 'Created default Free plan during registration for user: ' . $email);
+                }
+            }
+
+            $stmt = $pdo->prepare("INSERT INTO user_subscriptions (user_id, plan_id, active, start_date, end_date, is_free_from_coupon) VALUES (:user_id, :plan_id, TRUE, CURRENT_DATE, CURRENT_DATE + INTERVAL '1 year', FALSE)");
             $stmt->execute([
                 ':user_id' => $userId,
                 ':plan_id' => $defaultFreePlanId
@@ -123,16 +113,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             logActivity('registration', 'New user registered: ' . $email, $userId);
             logSystemEvent('user_registration', 'User ' . $email . ' registered successfully.', $userId, $_SERVER['REMOTE_ADDR']);
 
-            sendJsonResponse(['success' => true, 'message' => 'Registration successful! You can now log in.'], 201);
+            $pdo->commit();
+            jsonResponse(['success' => true, 'message' => 'Registration successful! You can now log in.'], 201);
         } else {
-            sendJsonResponse(['success' => false, 'message' => 'Registration failed. Please try again.'], 500);
+            $pdo->rollBack();
+            jsonResponse(['success' => false, 'message' => 'Registration failed. Please try again.'], 500);
         }
 
     } catch (Exception $e) {
-        logError('Registration error: ' . $e->getMessage());
-        sendJsonResponse(['success' => false, 'message' => 'An unexpected error occurred. Please try again later.'], 500);
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        
+        $errorMessage = $e->getMessage();
+        logMessage('ERROR', 'Registration error: ' . $errorMessage);
+        
+        // Provide more specific error messages
+        if (strpos($errorMessage, 'duplicate key') !== false || strpos($errorMessage, 'already exists') !== false) {
+            jsonResponse(['success' => false, 'message' => 'An account with this email already exists.'], 409);
+        } elseif (strpos($errorMessage, 'could not find driver') !== false) {
+            jsonResponse(['success' => false, 'message' => 'Database connection error. Please contact support.'], 500);
+        } elseif (strpos($errorMessage, 'connection') !== false) {
+            jsonResponse(['success' => false, 'message' => 'Database connection failed. Please try again later.'], 500);
+        } else {
+            jsonResponse(['success' => false, 'message' => 'Registration failed: ' . $errorMessage], 500);
+        }
     }
 } else {
-    sendJsonResponse(['success' => false, 'message' => 'Invalid request method.'], 405);
+    jsonResponse(['success' => false, 'message' => 'Invalid request method.'], 405);
 }
 ?>

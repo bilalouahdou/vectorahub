@@ -497,7 +497,7 @@ if (!isset($_SESSION['csrf_token'])) {
                 <div class="card bg-light">
                     <div class="card-body text-center">
                         <h6 class="card-title">Current Plan</h6>
-                        <h5 class="text-accent"><?php echo $subscription['name'] ?? 'Free'; ?></h5>
+                        <h5 class="text-accent"><?php echo htmlspecialchars($subscription['name'] ?? 'Free'); ?></h5>
                         <p class="mb-1"><strong><?php echo $coinsRemaining; ?></strong> coins left</p>
                         <?php if ($coinsRemaining <= 5): ?>
                             <a href="pricing.php" class="btn btn-accent btn-sm">Upgrade</a>
@@ -535,7 +535,7 @@ if (!isset($_SESSION['csrf_token'])) {
                     </li>
                 <?php endif; ?>
                 <li class="nav-item mt-3">
-                    <a class="nav-link text-danger" href="php/auth/logout.php">
+                                            <a class="nav-link text-danger" href="php/auth/logout.php">
                         🚪 Logout
                     </a>
                 </li>

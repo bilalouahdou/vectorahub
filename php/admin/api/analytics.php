@@ -1,4 +1,5 @@
 <?php
+require_once '../../config.php';
 require_once '../../utils.php';
 redirectIfNotAdmin();
 
@@ -8,19 +9,19 @@ try {
     $pdo = connectDB();
     $period = $_GET['period'] ?? 'month';
     
-    // Calculate date range based on period
+    // Calculate date range based on period (PostgreSQL syntax)
     switch ($period) {
         case 'day':
-            $dateCondition = "DATE(created_at) = CURDATE()";
+            $dateCondition = "DATE(created_at) = CURRENT_DATE";
             break;
         case 'week':
-            $dateCondition = "created_at >= DATE_SUB(NOW(), INTERVAL 1 WEEK)";
+            $dateCondition = "created_at >= NOW() - INTERVAL '1 week'";
             break;
         case 'year':
-            $dateCondition = "created_at >= DATE_SUB(NOW(), INTERVAL 1 YEAR)";
+            $dateCondition = "created_at >= NOW() - INTERVAL '1 year'";
             break;
         default: // month
-            $dateCondition = "created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)";
+            $dateCondition = "created_at >= NOW() - INTERVAL '1 month'";
     }
     
     // User signups

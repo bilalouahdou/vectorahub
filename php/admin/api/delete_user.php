@@ -1,6 +1,6 @@
 <?php
 require_once '../../utils.php';
-require_once '../../config.php';
+require_once '../../config.php'; // Ensure config is loaded for getDBConnection
 
 // Ensure user is admin
 redirectIfNotAdmin();
@@ -36,7 +36,7 @@ if (isset($_SESSION['user_id']) && $userId === $_SESSION['user_id']) {
 }
 
 try {
-    $pdo = connectDB();
+    $pdo = getDBConnection(); // Use getDBConnection from config.php
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->beginTransaction();
     
@@ -51,19 +51,20 @@ try {
         exit;
     }
     
-    // Don't allow deleting other admins unless you're a super admin
+    // Don't allow deleting other admins unless you're a super admin (or if roles are hierarchical)
     if ($user['role'] === 'admin') {
         $currentUserRole = $_SESSION['role'] ?? 'user';
-        if ($currentUserRole !== 'admin') {
+        // Assuming 'admin' is the highest role. If there's a 'super_admin', adjust this.
+        if ($currentUserRole !== 'admin' || $userId === $_SESSION['user_id']) { // Added check for self-deletion
             $pdo->rollBack();
-            echo json_encode(['success' => false, 'error' => 'You do not have permission to delete admin accounts']);
+            echo json_encode(['success' => false, 'error' => 'You do not have permission to delete admin accounts or your own account.']);
             exit;
         }
     }
     
     // Delete related data in correct order to avoid foreign key constraint violations
     
-    // 1. First delete coin_usage records (they reference image_jobs)
+    // 1. Delete coin_usage records (they reference image_jobs)
     $stmt = $pdo->prepare("DELETE FROM coin_usage WHERE user_id = ?");
     $stmt->execute([$userId]);
     
@@ -79,36 +80,40 @@ try {
     $stmt = $pdo->prepare("DELETE FROM user_subscriptions WHERE user_id = ?");
     $stmt->execute([$userId]);
     
-    // 5. Delete user's API keys (if table exists)
+    // 5. Delete user's API keys (if table exists and references user_id)
     try {
         $stmt = $pdo->prepare("DELETE FROM api_keys WHERE user_id = ?");
         $stmt->execute([$userId]);
-    } catch (Exception $e) {
-        // Table might not exist, continue
+    } catch (PDOException $e) {
+        // Log error but don't fail if table or column doesn't exist
+        error_log("Skipping api_keys deletion for user $userId: " . $e->getMessage());
     }
     
-    // 6. Delete user's bulk jobs (if table exists)
+    // 6. Delete user's bulk jobs (if table exists and references user_id)
     try {
         $stmt = $pdo->prepare("DELETE FROM bulk_jobs WHERE user_id = ?");
         $stmt->execute([$userId]);
-    } catch (Exception $e) {
-        // Table might not exist, continue
+    } catch (PDOException $e) {
+        // Log error but don't fail if table or column doesn't exist
+        error_log("Skipping bulk_jobs deletion for user $userId: " . $e->getMessage());
     }
     
-    // 7. Update admin logs to avoid foreign key issues
+    // 7. Update admin logs to avoid foreign key issues (set admin_id to NULL if it references users)
     try {
         $stmt = $pdo->prepare("UPDATE admin_logs SET admin_id = NULL WHERE admin_id = ?");
         $stmt->execute([$userId]);
-    } catch (Exception $e) {
-        // Table might not exist, continue
+    } catch (PDOException $e) {
+        // Log error but don't fail if table or column doesn't exist
+        error_log("Skipping admin_logs update for user $userId: " . $e->getMessage());
     }
     
     // 8. Delete from activity_logs if user_id references exist
     try {
         $stmt = $pdo->prepare("DELETE FROM activity_logs WHERE user_id = ?");
         $stmt->execute([$userId]);
-    } catch (Exception $e) {
-        // Table might not exist, continue
+    } catch (PDOException $e) {
+        // Log error but don't fail if table or column doesn't exist
+        error_log("Skipping activity_logs deletion for user $userId: " . $e->getMessage());
     }
     
     // Finally, delete the user
@@ -116,18 +121,7 @@ try {
     $stmt->execute([$userId]);
     
     // Log the action
-    try {
-        $adminId = $_SESSION['user_id'] ?? 1;
-        $stmt = $pdo->prepare("
-            INSERT INTO admin_logs (admin_id, action, timestamp)
-            VALUES (?, ?, NOW())
-        ");
-        $action = "Deleted user: {$user['full_name']} ({$user['email']}) - ID: $userId";
-        $stmt->execute([$adminId, $action]);
-    } catch (Exception $e) {
-        // Log error but don't fail the main operation
-        error_log("Failed to log admin action: " . $e->getMessage());
-    }
+    logAdminAction($_SESSION['user_id'] ?? null, "Deleted user: {$user['full_name']} ({$user['email']}) - ID: $userId");
     
     $pdo->commit();
     echo json_encode(['success' => true, 'message' => 'User deleted successfully']);

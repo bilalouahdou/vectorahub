@@ -39,7 +39,7 @@ try {
         SELECT us.*, sp.name as plan_name, sp.price, sp.features
         FROM user_subscriptions us
         JOIN subscription_plans sp ON us.plan_id = sp.id
-        WHERE us.user_id = ? AND us.active = 1 AND us.end_date >= CURDATE()
+        WHERE us.user_id = ? AND us.active = TRUE AND us.end_date >= CURRENT_DATE
         ORDER BY us.id DESC LIMIT 1
     ");
     $stmt->execute([$userId]);

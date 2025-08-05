@@ -37,8 +37,8 @@ try {
         FROM coupon_codes c
         LEFT JOIN subscription_plans sp ON c.free_plan_id = sp.id
         WHERE c.code = ? 
-        AND c.valid_from <= CURDATE() 
-        AND c.valid_until >= CURDATE()
+        AND c.valid_from <= CURRENT_DATE
+AND c.valid_until >= CURRENT_DATE
         AND (c.max_uses IS NULL OR c.current_uses < c.max_uses)
     ");
     $stmt->execute([$couponCode]);

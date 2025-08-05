@@ -1,193 +1,61 @@
 <?php
-/**
- * Python API Client for VectorizeAI
- * Handles communication with the Flask API service
- */
 
 class PythonApiClient {
-    private $apiUrl;
-    
-    public function __construct($apiUrl = 'http://localhost:5000') {
-        $this->apiUrl = rtrim($apiUrl, '/');
+    private $baseUrl;
+    private $client;
+
+    public function __construct($baseUrl) {
+        $this->baseUrl = rtrim($baseUrl, '/');
+        // Initialize a simple HTTP client if needed, or rely on curl directly
+        // For this example, we'll use file_get_contents with stream context for POST
     }
-    
-    /**
-     * Vectorize an image file
-     */
-    public function vectorizeFile($filePath) {
-        if (!file_exists($filePath)) {
-            return ['success' => false, 'error' => 'File not found: ' . $filePath];
-        }
-        
-        $endpoint = '/vectorize';
-        
-        // Create a CURLFile object
-        $cfile = new CURLFile($filePath, 'image/jpeg', basename($filePath));
-        
-        // Set up the POST data
-        $postData = [
-            'image' => $cfile
-        ];
-        
-        return $this->makeRequest($endpoint, 'POST', $postData, true);
-    }
-    
-    /**
-     * Vectorize an image from URL
-     */
-    public function vectorizeUrl($imageUrl) {
-        $endpoint = '/vectorize-url';
-        
-        // Set up the POST data
-        $postData = [
-            'url' => $imageUrl
-        ];
-        
-        return $this->makeRequest($endpoint, 'POST', $postData);
-    }
-    
-    /**
-     * Download SVG file from the API
-     */
-    public function downloadSvg($filename, $savePath) {
-        // Log attempt
-        error_log("PythonApiClient: Attempting to download SVG: $filename to $savePath");
-        
-        $curl = curl_init();
-        
-        curl_setopt_array($curl, [
-            CURLOPT_URL => $this->apiUrl . '/download/' . urlencode($filename),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 120, // Increased from 60 to 120 seconds
-            CURLOPT_CONNECTTIMEOUT => 30, // Increased from 10 to 30 seconds
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS => 3,
-            // Fix callback issues
-            CURLOPT_NOPROGRESS => true,
-            CURLOPT_NOSIGNAL => 1,
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            // Set user agent
-            CURLOPT_USERAGENT => 'VectorizeAI-PHP-Client/1.0'
-        ]);
-        
-        $response = curl_exec($curl);
-        $httpCode = curl_getinfo($curl, CURLINFO_HTTP_CODE);
-        $error = curl_error($curl);
-        $errno = curl_errno($curl);
-        
-        // Log detailed information
-        error_log("PythonApiClient: Download Response Code: $httpCode");
-        error_log("PythonApiClient: cURL errno: $errno");
-        if ($error) {
-            error_log("PythonApiClient: cURL Error: $error");
-        }
-        
-        curl_close($curl);
-        
-        if ($error) {
-            throw new Exception("cURL error ($errno): $error");
-        }
-        
-        if ($response === false) {
-            throw new Exception("cURL returned false - no response received");
-        }
-        
-        if ($httpCode !== 200) {
-            error_log("API download failed with HTTP code $httpCode: $error");
-            return false;
-        }
-        
-        // Save the SVG content to the output path
-        if (file_put_contents($savePath, $response) === false) {
-            error_log("Failed to save SVG to $savePath");
-            return false;
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Check API health
-     */
-    public function healthCheck() {
-        return $this->makeRequest('/health');
-    }
-    
-    /**
-     * Simple test method with minimal file
-     */
-    public function testUpload() {
-        // Create a minimal test image
-        $testImage = imagecreatetruecolor(100, 100);
-        $white = imagecolorallocate($testImage, 255, 255, 255);
-        imagefill($testImage, 0, 0, $white);
-        
-        $tempFile = tempnam(sys_get_temp_dir(), 'test_') . '.png';
-        imagepng($testImage, $tempFile);
-        imagedestroy($testImage);
-        
-        try {
-            $result = $this->vectorizeFile($tempFile);
-            unlink($tempFile); // Cleanup
-            return $result;
-        } catch (Exception $e) {
-            unlink($tempFile); // Cleanup on error
-            throw $e;
-        }
-    }
-    
-    private function makeRequest($endpoint, $method = 'GET', $data = [], $isMultipart = false) {
-        // Initialize cURL
-        $ch = curl_init($this->apiUrl . $endpoint);
-        
-        // Set common cURL options
+
+    public function vectorizeImage($filename, $imageContent, $contentType) {
+        $url = $this->baseUrl . '/vectorize';
+
+        // Create a temporary file for the image content
+        $tempFile = tempnam(sys_get_temp_dir(), 'upload_');
+        file_put_contents($tempFile, $imageContent);
+
+        // Prepare the cURL request
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 300); // Increased from 30 to 300 seconds (5 minutes)
-        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30); // Increased connection timeout
-        
-        // Set method-specific options
-        if ($method === 'POST') {
-            curl_setopt($ch, CURLOPT_POST, true);
-            
-            if ($isMultipart) {
-                // For file uploads
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-            } else {
-                // For JSON data
-                curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-                curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-            }
-        }
-        
-        // Execute the request
+        curl_setopt($ch, CURLOPT_TIMEOUT, 300); // 5 minutes timeout
+
+        // Create CURLFile object for file upload
+        $cfile = new CURLFile($tempFile, $contentType, $filename);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, ['image' => $cfile]);
+
+        // Set headers
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Accept: application/json',
+            'User-Agent: PHP-VectraHub-Client/1.0'
+        ]);
+
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
-        
-        // Close cURL
         curl_close($ch);
-        
-        // Handle errors
-        if ($error) {
-            error_log("API request error: $error");
-            return ['success' => false, 'error' => $error, 'http_code' => $httpCode];
+
+        // Delete the temporary file
+        unlink($tempFile);
+
+        if ($response === false) {
+            error_log("Python API Client cURL Error: " . $error);
+            return ['success' => false, 'error' => 'Network error or API unreachable: ' . $error];
         }
-        
-        // Parse JSON response
-        $result = json_decode($response, true);
-        
-        // If not a valid JSON, return the raw response
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            error_log("API response is not valid JSON: " . substr($response, 0, 100) . "...");
-            return ['success' => false, 'error' => 'Invalid API response', 'http_code' => $httpCode, 'raw_response' => $response];
+
+        $responseData = json_decode($response, true);
+
+        if ($httpCode !== 200) {
+            $errorMessage = $responseData['detail'] ?? 'Unknown API error';
+            error_log("Python API Client Error ($httpCode): " . $errorMessage);
+            return ['success' => false, 'error' => 'Vectorization service error: ' . $errorMessage];
         }
-        
-        // Add HTTP code to the result
-        $result['http_code'] = $httpCode;
-        
-        return $result;
+
+        return ['success' => true, 'data' => $responseData['data'], 'is_black_image' => $responseData['is_black_image']];
     }
 }
 ?>

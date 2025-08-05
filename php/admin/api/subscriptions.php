@@ -75,9 +75,9 @@ try {
     // Get subscription stats
     $statsQuery = "
         SELECT 
-            COUNT(CASE WHEN us.active = 1 AND us.end_date >= CURDATE() THEN 1 END) as active_count,
-            COALESCE(SUM(CASE WHEN us.active = 1 AND us.end_date >= CURDATE() THEN p.price END), 0) as monthly_revenue,
-            COALESCE(AVG(CASE WHEN us.active = 1 AND us.end_date >= CURDATE() THEN p.price END), 0) as avg_value
+            COUNT(CASE WHEN us.active = TRUE AND us.end_date >= CURRENT_DATE THEN 1 END) as active_count,
+            COALESCE(SUM(CASE WHEN us.active = TRUE AND us.end_date >= CURRENT_DATE THEN p.price END), 0) as monthly_revenue,
+            COALESCE(AVG(CASE WHEN us.active = TRUE AND us.end_date >= CURRENT_DATE THEN p.price END), 0) as avg_value
         FROM user_subscriptions us
         LEFT JOIN subscription_plans p ON us.plan_id = p.id
     ";

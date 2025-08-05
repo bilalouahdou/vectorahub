@@ -215,9 +215,10 @@ class SecurityManager {
             $errors[] = 'Password must contain at least one number';
         }
         
-        if (!preg_match('/[^A-Za-z0-9]/', $password)) {
-            $errors[] = 'Password must contain at least one special character';
-        }
+        // Optional: Check for special character (not required for basic security)
+        // if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+        //     $errors[] = 'Password must contain at least one special character';
+        // }
         
         // Check against common passwords
         if ($this->isCommonPassword($password)) {

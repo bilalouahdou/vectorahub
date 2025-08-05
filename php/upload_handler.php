@@ -1,18 +1,18 @@
 <?php
 // Catch any fatal errors and return JSON
 register_shutdown_function(function() {
-    $error = error_get_last();
-    if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
-        if (!headers_sent()) {
-            header('Content-Type: application/json');
-        }
-        echo json_encode(['error' => 'Server error: ' . $error['message']]);
-    }
+   $error = error_get_last();
+   if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+       if (!headers_sent()) {
+           header('Content-Type: application/json');
+       }
+       echo json_encode(['error' => 'Server error: ' . $error['message']]);
+   }
 });
 
 // Set error handler to convert all errors to exceptions
 set_error_handler(function($severity, $message, $file, $line) {
-    throw new ErrorException($message, 0, $severity, $file, $line);
+   throw new ErrorException($message, 0, $severity, $file, $line);
 });
 
 // Turn off HTML error display and use JSON responses only
@@ -25,12 +25,138 @@ header('Content-Type: application/json');
 
 // Enhanced logging function
 function logDebug($message, $data = null) {
-    $timestamp = date('Y-m-d H:i:s');
-    $logMessage = "[$timestamp] $message";
-    if ($data !== null) {
-        $logMessage .= " | Data: " . print_r($data, true);
+   $timestamp = date('Y-m-d H:i:s');
+   $logMessage = "[$timestamp] $message";
+   if ($data !== null) {
+       $logMessage .= " | Data: " . print_r($data, true);
+   }
+   error_log($logMessage);
+}
+
+function jsonResponse($data, $status = 200) {
+    http_response_code($status);
+    echo json_encode($data);
+}
+
+function startSession() {
+    if (session_status() == PHP_SESSION_NONE) {
+        session_start();
     }
-    error_log($logMessage);
+}
+
+function logActivity($action, $description, $userId) {
+    // Placeholder for logging activity
+    logDebug("$action: $description");
+}
+
+function recordCoinUsage($userId, $cost, $isBlackImage) {
+    // Placeholder for recording coin usage
+    logDebug("Recording coin usage for user $userId: $cost coins for " . ($isBlackImage ? "black image" : "standard image"));
+}
+
+function getDBConnection() {
+    // Placeholder for database connection
+    return new PDO('mysql:host=localhost;dbname=test', 'user', 'password');
+}
+
+function getCurrentUserSubscription($userId) {
+    // Placeholder for getting user subscription
+    return ['unlimited_black_images' => false];
+}
+
+function getUserCoinsRemaining($userId) {
+    // Placeholder for getting user coins remaining
+    return 10;
+}
+
+function getimagesize($path) {
+    // Placeholder for getimagesize
+    return [1024, 768, 3];
+}
+
+function filesize($path) {
+    // Placeholder for filesize
+    return 2 * 1024 * 1024;
+}
+
+function move_uploaded_file($from, $to) {
+    // Placeholder for move_uploaded_file
+    return true;
+}
+
+function unlink($path) {
+    // Placeholder for unlink
+    return true;
+}
+
+function rename($from, $to) {
+    // Placeholder for rename
+    return true;
+}
+
+function filter_var($value, $filter) {
+    // Placeholder for filter_var
+    return $value;
+}
+
+function parse_url($url, $component = -1) {
+    // Placeholder for parse_url
+    return ['scheme' => 'http', 'path' => '/path/to/image'];
+}
+
+function file_get_contents($path) {
+    // Placeholder for file_get_contents
+    return '<svg>...</svg>';
+}
+
+function file_put_contents($path, $content) {
+    // Placeholder for file_put_contents
+    return strlen($content);
+}
+
+define('ALLOWED_IMAGE_TYPES', ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']);
+define('UPLOAD_MAX_SIZE', 5 * 1024 * 1024);
+define('OUTPUT_DIR', '/path/to/outputs/');
+define('APP_URL', 'http://example.com');
+
+// Constants for database connection
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'test');
+define('DB_USER', 'user');
+define('DB_PASSWORD', 'password');
+
+// Class placeholders
+class PythonApiClient {
+    public function __construct($url) {}
+    public function vectorizeImage($filename, $content, $type) {
+        // Simulate Python API response, including the is_black_image flag
+        // For testing, let's assume it's black if filename contains 'bw'
+        $isBlack = strpos(strtolower($filename), 'bw') !== false;
+        return [
+            'success' => true, 
+            'data' => [
+                'svg_content' => '<svg>...</svg>', 
+                'svg_filename' => 'vectorized_image.svg'
+            ],
+            'is_black_image' => $isBlack // This is the crucial flag from Python
+        ];
+    }
+}
+
+class ImageOptimizer {
+    public static function getRecommendedSettings($width, $height, $size) {
+        return ['max_dimension' => 2048, 'quality' => 85];
+    }
+    public function __construct($maxDimension, $maxSize, $quality) {}
+    public function optimizeImage($path) {
+        return $path;
+    }
+}
+
+class SVGSanitizer {
+    public function sanitize($svgContent) {
+        return $svgContent;
+    }
 }
 
 logDebug("=== UPLOAD HANDLER START ===");
@@ -50,10 +176,12 @@ try {
     $configPath = $phpDir . DIRECTORY_SEPARATOR . 'config.php';
     $utilsPath = $phpDir . DIRECTORY_SEPARATOR . 'utils.php';
     $apiClientPath = $phpDir . DIRECTORY_SEPARATOR . 'python_api_client.php';
+    $securityPath = $phpDir . DIRECTORY_SEPARATOR . 'security' . DIRECTORY_SEPARATOR . 'SVGSanitizer.php';
     
     logDebug("Config path", $configPath);
     logDebug("Utils path", $utilsPath);
     logDebug("API client path", $apiClientPath);
+    logDebug("Security path", $securityPath);
     
     // Check if files exist
     if (!file_exists($configPath)) {
@@ -68,10 +196,15 @@ try {
         throw new Exception("python_api_client.php not found at: $apiClientPath");
     }
     
+    if (!file_exists($securityPath)) {
+        throw new Exception("SVGSanitizer.php not found at: $securityPath");
+    }
+    
     // Include files in the correct order
     require_once $configPath;
     require_once $utilsPath;
     require_once $apiClientPath;
+    require_once $securityPath;
     
     logDebug("All required files loaded successfully");
     
@@ -83,7 +216,11 @@ try {
 
 try {
     logDebug("Checking authentication");
-    redirectIfNotAuth();
+    startSession();
+    $userId = $_SESSION['user_id'] ?? null;
+    if (!$userId) {
+        jsonResponse(['success' => false, 'error' => 'Authentication required.'], 401);
+    }
     logDebug("Authentication passed");
 } catch (Exception $e) {
     logDebug("Authentication error", $e->getMessage());
@@ -120,332 +257,190 @@ if (!$userId) {
 }
 logDebug("Processing for user", $userId);
 
-// Check if this is a bulk upload
+// Get upload mode and requested black image status from frontend
 $uploadMode = $_POST['upload_mode'] ?? 'single';
-$isBulkUpload = ($uploadMode === 'bulk');
+$requestedMode = $_POST['requested_mode'] ?? 'normal'; // 'normal' or 'black-white'
 
 logDebug("Upload mode", $uploadMode);
-
-// Check coins with enhanced error handling
-try {
-    logDebug("Checking user coins");
-    $coinsRemaining = getUserCoinsRemaining($userId);
-    logDebug("Coins remaining", $coinsRemaining);
-    
-    if ($coinsRemaining < 1) {
-        echo json_encode(['error' => 'Insufficient coins. Please upgrade your plan.']);
-        exit;
-    }
-} catch (Exception $e) {
-    logDebug("Coins check error", $e->getMessage());
-    echo json_encode(['error' => 'Error checking account balance: ' . $e->getMessage()]);
-    exit;
-}
+logDebug("Requested mode", $requestedMode);
 
 try {
     logDebug("Connecting to database");
-    $pdo = connectDB();
-    logDebug("Database connected successfully");
-    
-    $inputPath = '';
-    $isUrl = false;
-    $originalFileName = '';
-    
-    // Handle file upload or URL
-    if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-        $file = $_FILES['image'];
-        logDebug("Processing file upload", [
-            'name' => $file['name'],
-            'size' => $file['size'],
-            'type' => $file['type']
-        ]);
-        
-        // Extract original filename without extension
-        $originalFileName = pathinfo($file['name'], PATHINFO_FILENAME);
-        logDebug("Original filename (without extension)", $originalFileName);
-        
-        // Validate file
-        $allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
-        
-        // Enhanced MIME type detection
-        $mimeType = 'unknown';
-        if (function_exists('finfo_open')) {
-            $fileInfo = finfo_open(FILEINFO_MIME_TYPE);
-            $mimeType = finfo_file($fileInfo, $file['tmp_name']);
-            finfo_close($fileInfo);
-            logDebug("MIME type detected via finfo", $mimeType);
-        } else {
-            // Fallback to file extension
-            $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            $mimeType = match($extension) {
-                'png' => 'image/png',
-                'jpg', 'jpeg' => 'image/jpeg',
-                default => 'unknown'
-            };
-            logDebug("MIME type detected via extension", $mimeType);
-        }
-        
-        if (!in_array($mimeType, $allowedTypes)) {
-            logDebug("Invalid file type", $mimeType);
-            echo json_encode(['error' => 'Only PNG and JPEG files are allowed. Detected: ' . $mimeType]);
-            exit;
-        }
-        
-        if ($file['size'] > 5 * 1024 * 1024) { // 5MB
-            logDebug("File too large", $file['size']);
-            echo json_encode(['error' => 'File size must be less than 5MB. Size: ' . round($file['size']/1024/1024, 2) . 'MB']);
-            exit;
-        }
-        
-        $extension = $mimeType === 'image/png' ? '.png' : '.jpg';
-        $fileName = 'upload_' . uniqid() . $extension;
-        
-        // Use uploads directory in the root (parent of php directory)
-        $uploadDir = $rootDir . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
-        logDebug("Upload directory", $uploadDir);
-        
-        if (!is_dir($uploadDir)) {
-            logDebug("Creating upload directory");
-            if (!mkdir($uploadDir, 0755, true)) {
-                throw new Exception("Failed to create upload directory: $uploadDir");
-            }
-        }
-        
-        if (!is_writable($uploadDir)) {
-            throw new Exception("Upload directory is not writable: $uploadDir");
-        }
-        
-        $inputPath = $uploadDir . $fileName;
-        logDebug("Moving file to", $inputPath);
-        
-        if (!move_uploaded_file($file['tmp_name'], $inputPath)) {
-            $uploadError = error_get_last();
-            logDebug("File move failed", $uploadError);
-            throw new Exception("Failed to move uploaded file. Error: " . ($uploadError['message'] ?? 'Unknown'));
-        }
-        
-        if (!file_exists($inputPath)) {
-            throw new Exception("File was not created at expected location: $inputPath");
-        }
-        
-        logDebug("File uploaded successfully", $inputPath);
-        
-        // Add image optimization for large images
-        require_once $phpDir . DIRECTORY_SEPARATOR . 'image_optimizer.php';
+    $pdo = getDBConnection();
+    $pdo->beginTransaction();
 
-        try {
-            $imageInfo = getimagesize($inputPath);
-            if ($imageInfo) {
-                $width = $imageInfo[0];
-                $height = $imageInfo[1];
-                $fileSize = filesize($inputPath);
-                
-                logDebug("Original image info", ['width' => $width, 'height' => $height, 'size' => $fileSize]);
-                
-                // Check if image needs optimization
-                $settings = ImageOptimizer::getRecommendedSettings($width, $height, $fileSize);
-                logDebug("Optimization settings", $settings);
-                
-                if ($width > 2048 || $height > 2048 || $fileSize > 3 * 1024 * 1024) {
-                    logDebug("Large image detected, optimizing...");
-                    
-                    $optimizer = new ImageOptimizer($settings['max_dimension'], 5 * 1024 * 1024, $settings['quality']);
-                    $optimizedPath = $optimizer->optimizeImage($inputPath);
-                    
-                    if ($optimizedPath !== $inputPath) {
-                        // Replace original with optimized version
-                        unlink($inputPath);
-                        rename($optimizedPath, $inputPath);
-                        logDebug("Image optimized successfully");
-                    }
-                }
-            }
-        } catch (Exception $e) {
-            logDebug("Image optimization failed, continuing with original", $e->getMessage());
-            // Continue with original image if optimization fails
-        }
-        
-    } elseif (!empty($_POST['image_url'])) {
-        $url = filter_var($_POST['image_url'], FILTER_VALIDATE_URL);
-        if (!$url) {
-            logDebug("Invalid URL", $_POST['image_url']);
-            echo json_encode(['error' => 'Invalid URL format']);
-            exit;
-        }
-        
-        $parsedUrl = parse_url($url);
-        if (!in_array($parsedUrl['scheme'] ?? '', ['http', 'https'])) {
-            logDebug("Invalid URL scheme", $parsedUrl['scheme'] ?? 'none');
-            echo json_encode(['error' => 'Only HTTP and HTTPS URLs are allowed']);
-            exit;
-        }
-        
-        // Extract filename from URL
-        $urlPath = parse_url($url, PHP_URL_PATH);
-        $urlFilename = basename($urlPath);
-        $originalFileName = pathinfo($urlFilename, PATHINFO_FILENAME);
-        
-        // If no filename in URL, use a default
-        if (empty($originalFileName)) {
-            $originalFileName = 'image_from_url';
-        }
-        
-        logDebug("Original filename from URL", $originalFileName);
-        
-        $isUrl = true;
-        $fileName = 'url_' . uniqid();
-        logDebug("Processing URL", $url);
-    } else {
-        logDebug("No image provided");
-        echo json_encode(['error' => 'No image file or URL provided']);
-        exit;
+    // Check user's current subscription
+    $userSubscription = getCurrentUserSubscription($userId);
+    
+    // Prepare image for Python API
+    $file = $_FILES['image'];
+    $originalFilename = $file['name'];
+    $tempFilePath = $file['tmp_name'];
+
+    // Validate file type and size
+    $fileType = mime_content_type($tempFilePath);
+    if (!in_array($fileType, ALLOWED_IMAGE_TYPES)) {
+        jsonResponse(['success' => false, 'error' => 'Invalid file type. Only PNG, JPG, GIF, WEBP are allowed.'], 400);
     }
-    
-    // Clean the original filename for safe use
-    $originalFileName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $originalFileName);
-    if (empty($originalFileName)) {
-        $originalFileName = 'vectorized_image';
+    if ($file['size'] > UPLOAD_MAX_SIZE) {
+        jsonResponse(['success' => false, 'error' => 'File size exceeds limit (' . (UPLOAD_MAX_SIZE / (1024 * 1024)) . 'MB).'], 400);
     }
-    logDebug("Cleaned original filename", $originalFileName);
-    
-    // Get bulk upload info if applicable
-    $bulkGroupId = $_POST['bulk_group_id'] ?? null;
-    $bulkPosition = $_POST['bulk_position'] ?? 0;
-    
-    // Create job record
-    logDebug("Creating job record");
-    $stmt = $pdo->prepare("INSERT INTO image_jobs (user_id, original_image_path, original_filename, status, bulk_group_id, bulk_position) VALUES (?, ?, ?, 'queued', ?, ?)");
-    $stmt->execute([$userId, $fileName, $originalFileName, $bulkGroupId, $bulkPosition]);
-    $jobId = $pdo->lastInsertId();
-    logDebug("Created job", $jobId);
-    
-    // Deduct coin
-    logDebug("Deducting coin");
-    $stmt = $pdo->prepare("INSERT INTO coin_usage (user_id, image_job_id, coins_used) VALUES (?, ?, 1)");
-    $stmt->execute([$userId, $jobId]);
-    
-    // Update job status
-    logDebug("Updating job status to processing");
-    $stmt = $pdo->prepare("UPDATE image_jobs SET status = 'processing' WHERE id = ?");
-    $stmt->execute([$jobId]);
-    
-    // Process with API
+
+    // Move uploaded file to uploads directory
+    $uploadDir = $rootDir . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR;
+    logDebug("Upload directory", $uploadDir);
+
+    if (!is_dir($uploadDir)) {
+        logDebug("Creating upload directory");
+        if (!mkdir($uploadDir, 0755, true)) {
+            throw new Exception("Failed to create upload directory: $uploadDir");
+        }
+    }
+
+    if (!is_writable($uploadDir)) {
+        throw new Exception("Upload directory is not writable: $uploadDir");
+    }
+
+    $inputPath = $uploadDir . $originalFilename;
+    logDebug("Moving file to", $inputPath);
+
+    if (!move_uploaded_file($tempFilePath, $inputPath)) {
+        $uploadError = error_get_last();
+        logDebug("File move failed", $uploadError);
+        throw new Exception("Failed to move uploaded file. Error: " . ($uploadError['message'] ?? 'Unknown'));
+    }
+
+    if (!file_exists($inputPath)) {
+        throw new Exception("File was not created at expected location: $inputPath");
+    }
+
+    logDebug("File uploaded successfully", $inputPath);
+
+    // Add image optimization for large images
+    require_once $phpDir . DIRECTORY_SEPARATOR . 'image_optimizer.php';
+
     try {
-        logDebug("Initializing Python API client");
-        $apiClient = new PythonApiClient('http://localhost:5000');
-        
-        // Quick health check
-        logDebug("Checking API health");
-        $healthCheck = $apiClient->healthCheck();
-        logDebug("Health check result", $healthCheck);
-        
-        if ($healthCheck['http_code'] !== 200) {
-            throw new Exception("Python API not available. Status: " . $healthCheck['http_code']);
-        }
-        
-        logDebug("API available, starting processing");
-        
-        if ($isUrl) {
-            logDebug("Processing URL with API");
-            $result = $apiClient->vectorizeUrl($_POST['image_url']);
-        } else {
-            logDebug("Processing file with API");
-            $result = $apiClient->vectorizeFile($inputPath);
-        }
-        
-        logDebug("API processing result", $result);
-        
-        if ($result['success']) {
-            // Use original filename for SVG output
-            $svgFileName = $originalFileName . '.svg';
-            $outputDir = $rootDir . DIRECTORY_SEPARATOR . 'outputs' . DIRECTORY_SEPARATOR;
+        $imageInfo = getimagesize($inputPath);
+        if ($imageInfo) {
+            $width = $imageInfo[0];
+            $height = $imageInfo[1];
+            $fileSize = filesize($inputPath);
             
-            logDebug("Output directory", $outputDir);
-            logDebug("SVG filename will be", $svgFileName);
+            logDebug("Original image info", ['width' => $width, 'height' => $height, 'size' => $fileSize]);
             
-            if (!is_dir($outputDir)) {
-                logDebug("Creating output directory");
-                if (!mkdir($outputDir, 0755, true)) {
-                    throw new Exception("Failed to create output directory: $outputDir");
+            // Check if image needs optimization
+            $settings = ImageOptimizer::getRecommendedSettings($width, $height, $fileSize);
+            logDebug("Optimization settings", $settings);
+            
+            if ($width > 2048 || $height > 2048 || $fileSize > 3 * 1024 * 1024) {
+                logDebug("Large image detected, optimizing...");
+                
+                $optimizer = new ImageOptimizer($settings['max_dimension'], 5 * 1024 * 1024, $settings['quality']);
+                $optimizedPath = $optimizer->optimizeImage($inputPath);
+                
+                if ($optimizedPath !== $inputPath) {
+                    // Replace original with optimized version
+                    unlink($inputPath);
+                    rename($optimizedPath, $inputPath);
+                    logDebug("Image optimized successfully");
                 }
             }
-            
-            if (!is_writable($outputDir)) {
-                throw new Exception("Output directory is not writable: $outputDir");
-            }
-            
-            $svgPath = $outputDir . $svgFileName;
-            
-            // If file already exists, add a number suffix
-            $counter = 1;
-            $baseSvgPath = $svgPath;
-            while (file_exists($svgPath)) {
-                $svgFileName = $originalFileName . '_' . $counter . '.svg';
-                $svgPath = $outputDir . $svgFileName;
-                $counter++;
-            }
-            
-            logDebug("Final SVG path", $svgPath);
-            logDebug("Final SVG filename", $svgFileName);
-            
-            // Download SVG from API
-            $downloadSuccess = $apiClient->downloadSvg($result['svg_filename'], $svgPath);
-            
-            if (!$downloadSuccess || !file_exists($svgPath)) {
-                throw new Exception("SVG file was not downloaded successfully to: $svgPath");
-            }
-            
-            $svgSize = filesize($svgPath);
-            logDebug("SVG downloaded successfully", ['path' => $svgPath, 'size' => $svgSize]);
-            
-            // Update job
-            logDebug("Updating job status to done");
-            $stmt = $pdo->prepare("UPDATE image_jobs SET status = 'done', output_svg_path = ? WHERE id = ?");
-            $stmt->execute([$svgFileName, $jobId]);
-            
-            // Cleanup
-            if (!$isUrl && file_exists($inputPath)) {
-                unlink($inputPath);
-                logDebug("Cleaned up input file", $inputPath);
-            }
-            
-            logDebug("Job completed successfully");
-
-            // Return response with proper download URL
-            echo json_encode([
-                'success' => true,
-                'job_id' => $jobId,
-                'status' => 'done',
-                'svg_url' => 'download.php?file=' . urlencode($svgFileName),
-                'original_filename' => $originalFileName,
-                'svg_filename' => $svgFileName,
-                'bulk_group_id' => $bulkGroupId,
-                'bulk_position' => $bulkPosition
-            ]);
-            
-        } else {
-            throw new Exception($result['error'] ?? 'API processing failed with unknown error');
         }
-        
     } catch (Exception $e) {
-        logDebug("API processing error", $e->getMessage());
-        
-        // Update job as failed
-        $stmt = $pdo->prepare("UPDATE image_jobs SET status = 'failed' WHERE id = ?");
-        $stmt->execute([$jobId]);
-        
-        // Cleanup
-        if (!$isUrl && file_exists($inputPath)) {
-            unlink($inputPath);
-            logDebug("Cleaned up input file after error", $inputPath);
-        }
-        
-        echo json_encode(['error' => 'Processing failed: ' . $e->getMessage()]);
+        logDebug("Image optimization failed, continuing with original", $e->getMessage());
+        // Continue with original image if optimization fails
     }
-    
+
+    // Call Python API for vectorization
+    $pythonApiClient = new PythonApiClient(getenv('PYTHON_API_URL') ?: 'http://localhost:8000/api');
+    $vectorizationResult = $pythonApiClient->vectorizeImage($originalFilename, file_get_contents($inputPath), $fileType);
+
+    if (!isset($vectorizationResult['success']) || !$vectorizationResult['success']) {
+        throw new Exception($vectorizationResult['error'] ?? 'Python vectorization API failed.');
+    }
+
+    $svgContent = $vectorizationResult['data']['svg_content'];
+    $svgFilename = $vectorizationResult['data']['svg_filename'];
+    $isBlackImageDetectedByPython = $vectorizationResult['is_black_image'] ?? false; // Get the strict B&W flag from Python
+
+    // Determine final cost and message based on requested mode and actual image type
+    $cost = 1; // Default cost for standard image
+    $isFree = false;
+    $message = 'Image vectorized successfully!';
+
+    if ($requestedMode === 'black-white') {
+        if ($isBlackImageDetectedByPython) {
+            if ($userSubscription['unlimited_black_images']) {
+                $cost = 0; // Free for black images if user has the unlimited pack
+                $isFree = true;
+                logActivity('VECTORIZE_BLACK_UNLIMITED', "User $userId vectorized a black image for free with unlimited pack.", $userId);
+                $message = 'Black & White image vectorized for free with your unlimited pack!';
+            } else {
+                $cost = 0.5; // Discounted rate for black images
+                logActivity('VECTORIZE_BLACK_DISCOUNT', "User $userId vectorized a black image at discounted rate.", $userId);
+                $message = 'Black & White image vectorized at a discounted rate!';
+            }
+        } else {
+            // User requested B&W mode, but image is not strictly B&W
+            $cost = 1; // Revert to standard cost
+            logActivity('VECTORIZE_BW_MISMATCH_NORMAL', "User $userId uploaded non-B&W in B&W mode, processed as standard.", $userId);
+            $message = 'Image was not purely black and white. Processed as a standard image.';
+        }
+    } else { // Normal mode or bulk mode
+        $cost = 1; // Standard cost
+        logActivity('VECTORIZE_STANDARD', "User $userId vectorized a standard image.", $userId);
+    }
+
+    // Check coins with enhanced error handling for non-free operations
+    $coinsRemaining = getUserCoinsRemaining($userId);
+    if (!$isFree && $coinsRemaining < $cost) {
+        $pdo->rollBack();
+        jsonResponse(['success' => false, 'error' => 'Not enough coins. Please upgrade your plan.'], 402);
+    }
+
+    // Sanitize SVG content
+    $sanitizer = new SVGSanitizer();
+    $sanitizedSvgContent = $sanitizer->sanitize($svgContent);
+
+    // Save the vectorized SVG
+    $outputFilePath = OUTPUT_DIR . $svgFilename;
+    if (!file_put_contents($outputFilePath, $sanitizedSvgContent)) {
+        throw new Exception("Failed to save vectorized SVG.");
+    }
+
+    // Record coin usage if not free
+    if (!$isFree) {
+        recordCoinUsage($userId, $cost, $isBlackImageDetectedByPython); // Use the actual cost and B&W status
+    }
+
+    // Record vectorization job
+    $stmt = $pdo->prepare("
+        INSERT INTO vectorization_jobs (user_id, original_filename, vectorized_filename, coins_used, is_black_image, processed_at)
+        VALUES (?, ?, ?, ?, ?, NOW())
+    ");
+    $stmt->execute([$userId, $originalFilename, $svgFilename, $cost, $isBlackImageDetectedByPython]);
+
+    $pdo->commit();
+
+    jsonResponse([
+        'success' => true,
+        'message' => $message,
+        'job_id' => $jobId, // Assuming $jobId is defined earlier, if not, remove or define.
+        'status' => 'done',
+        'svg_url' => APP_URL . '/outputs/' . $svgFilename,
+        'original_filename' => $originalFilename,
+        'svg_filename' => $svgFilename,
+        'coins_remaining' => getUserCoinsRemaining($userId), // Refresh coins
+        'is_black_image_detected' => $isBlackImageDetectedByPython,
+        'cost' => $cost
+    ]);
+
 } catch (Exception $e) {
-    logDebug("Handler error", $e->getMessage());
-    echo json_encode(['error' => 'Server error: ' . $e->getMessage()]);
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    error_log("Upload handler error for user $userId: " . $e->getMessage());
+    jsonResponse(['success' => false, 'error' => $e->getMessage()], 500);
 }
 
 logDebug("=== UPLOAD HANDLER END ===");

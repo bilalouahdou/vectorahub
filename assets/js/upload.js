@@ -9,12 +9,14 @@ class ImageUploader {
 
     // Initialize properties with safe defaults
     this.isProcessing = false
-    this.currentMode = "single"
+    this.currentMode = "single" // 'single' or 'bulk'
+    this.currentSingleMode = "normal" // 'normal' or 'black-white'
     this.bulkFiles = []
     this.bulkResultsArray = []
     this.currentImageData = null
     this.initialized = false
     this.isValidPage = false
+    this.isBlackImageDetected = false // New property for black image detection
 
     // Safe initialization
     this.safeInit()
@@ -80,6 +82,7 @@ class ImageUploader {
       this.imagePreviewArea = this.safeGetElement("imagePreviewArea")
       this.originalImagePreview = this.safeGetElement("originalImagePreview")
       this.vectorizedImagePreview = this.safeGetElement("vectorizedImagePreview")
+      this.blackImageBadge = this.safeGetElement("blackImageBadge") // New badge element
 
       // Bulk upload elements
       this.bulkPreviewGrid = this.safeGetElement("bulkPreviewGrid")
@@ -94,6 +97,11 @@ class ImageUploader {
       this.bulkModeBtn = this.safeGetElement("bulkModeBtn")
       this.singleUploadForm = this.safeGetElement("singleUploadForm")
       this.bulkUploadForm = this.safeGetElement("bulkUploadForm")
+
+      // New single mode specific toggles
+      this.singleNormalModeBtn = this.safeGetElement("singleNormalModeBtn")
+      this.singleBWModeBtn = this.safeGetElement("singleBWModeBtn")
+      this.singleModeSelection = this.safeGetElement("singleModeSelection") // Container for normal/BW buttons
 
       if (!this.form) {
         debugLog("❌ No upload form found")
@@ -115,7 +123,7 @@ class ImageUploader {
     debugLog("🔧 Setting up event listeners...")
 
     try {
-      // Mode toggle with safety checks
+      // Main mode toggle (Single/Bulk)
       this.safeAddEventListener(this.singleModeBtn, "click", () => {
         debugLog("🔄 Switching to single mode")
         this.switchMode("single")
@@ -124,6 +132,17 @@ class ImageUploader {
       this.safeAddEventListener(this.bulkModeBtn, "click", () => {
         debugLog("🔄 Switching to bulk mode")
         this.switchMode("bulk")
+      })
+
+      // Single mode sub-toggles (Normal/Black & White)
+      this.safeAddEventListener(this.singleNormalModeBtn, "click", () => {
+        debugLog("🔄 Switching to single normal mode")
+        this.switchSingleMode("normal")
+      })
+
+      this.safeAddEventListener(this.singleBWModeBtn, "click", () => {
+        debugLog("🔄 Switching to single B&W mode")
+        this.switchSingleMode("black-white")
       })
 
       // Single upload events
@@ -180,7 +199,7 @@ class ImageUploader {
   switchMode(mode) {
     if (!this.isValidPage) return
 
-    debugLog(`🔄 Switching to mode: ${mode}`)
+    debugLog(`🔄 Switching to main mode: ${mode}`)
 
     try {
       this.currentMode = mode
@@ -190,17 +209,38 @@ class ImageUploader {
         this.safeToggleClass(this.bulkModeBtn, "active", false)
         this.safeToggleClass(this.singleUploadForm, "d-none", false)
         this.safeToggleClass(this.bulkUploadForm, "d-none", true)
+        this.safeToggleClass(this.singleModeSelection, "d-none", false) // Show single mode sub-selection
+        this.switchSingleMode(this.currentSingleMode) // Re-apply single sub-mode styling
       } else {
         this.safeToggleClass(this.bulkModeBtn, "active", true)
         this.safeToggleClass(this.singleModeBtn, "active", false)
         this.safeToggleClass(this.singleUploadForm, "d-none", true)
         this.safeToggleClass(this.bulkUploadForm, "d-none", false)
+        this.safeToggleClass(this.singleModeSelection, "d-none", true) // Hide single mode sub-selection
       }
 
       this.resetForms()
     } catch (error) {
       debugLog("❌ Error switching mode:", error.message)
     }
+  }
+
+  switchSingleMode(mode) {
+    if (!this.isValidPage || this.currentMode !== "single") return
+
+    debugLog(`🔄 Switching to single sub-mode: ${mode}`)
+    this.currentSingleMode = mode
+
+    if (mode === "normal") {
+      this.safeToggleClass(this.singleNormalModeBtn, "active", true)
+      this.safeToggleClass(this.singleBWModeBtn, "active", false)
+      this.hideBlackImageBadge() // Hide badge if switching to normal
+    } else {
+      this.safeToggleClass(this.singleBWModeBtn, "active", true)
+      this.safeToggleClass(this.singleNormalModeBtn, "active", false)
+      // Badge will be shown/hidden based on image detection in handleFileSelect
+    }
+    this.updateSubmitButton()
   }
 
   safeToggleClass(element, className, add) {
@@ -228,6 +268,8 @@ class ImageUploader {
       if (this.urlInput) this.urlInput.value = ""
       this.resetUploadArea()
       this.hideImagePreview()
+      this.hideBlackImageBadge() // Reset badge
+      this.isBlackImageDetected = false // Reset detection flag
 
       // Reset bulk form
       this.bulkFiles = []
@@ -272,7 +314,7 @@ class ImageUploader {
     }
   }
 
-  handleFileSelect() {
+  async handleFileSelect() {
     if (!this.fileInput || !this.fileInput.files || !this.fileInput.files.length) return
 
     try {
@@ -284,8 +326,28 @@ class ImageUploader {
       if (this.urlInput) this.urlInput.value = ""
       this.updateUploadArea(file.name)
       this.showOriginalImagePreview(file)
-      this.updateSubmitButton()
       this.hideAllAreas()
+
+      // Perform strict black image detection
+      this.isBlackImageDetected = await this.checkIfStrictlyBlackAndWhite(file)
+      debugLog(`Client-side strict B&W detection for ${file.name}: ${this.isBlackImageDetected}`)
+
+      if (this.currentSingleMode === "black-white") {
+        if (!this.isBlackImageDetected) {
+          // Not strictly B&W, switch to normal mode and inform user
+          this.switchSingleMode("normal")
+          window.VectorizeUtils.showToast(
+            "This image is not purely black and white. Switching to Normal Mode for vectorization.",
+            "warning",
+          )
+        } else {
+          this.showBlackImageBadge()
+        }
+      } else {
+        this.hideBlackImageBadge()
+      }
+
+      this.updateSubmitButton()
     } catch (error) {
       debugLog("❌ Error handling file select:", error.message)
     }
@@ -314,13 +376,96 @@ class ImageUploader {
         this.updateUploadArea("Image from URL")
         this.showOriginalImagePreview(url)
         this.hideAllAreas()
+
+        // Cannot reliably check if URL image is black-only client-side without CORS issues
+        // So, we'll assume false for client-side detection for URL images.
+        this.isBlackImageDetected = false
+        this.hideBlackImageBadge()
+
+        // If in B&W mode, switch to normal for URL uploads as we can't verify client-side
+        if (this.currentSingleMode === "black-white") {
+          this.switchSingleMode("normal")
+          window.VectorizeUtils.showToast(
+            "Cannot verify if URL image is purely black and white. Processing in Normal Mode.",
+            "info",
+          )
+        }
       } else {
         this.resetUploadArea()
         this.hideImagePreview()
+        this.hideBlackImageBadge()
       }
       this.updateSubmitButton()
     } catch (error) {
       debugLog("❌ Error handling URL input:", error.message)
+    }
+  }
+
+  // New function to strictly check if image is black-only (client-side heuristic)
+  async checkIfStrictlyBlackAndWhite(file) {
+    return new Promise((resolve) => {
+      if (!file || !file.type.startsWith("image/")) {
+        resolve(false)
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const img = new Image()
+        img.onload = () => {
+          try {
+            const canvas = document.createElement("canvas")
+            canvas.width = img.width
+            canvas.height = img.height
+            const ctx = canvas.getContext("2d")
+            ctx.drawImage(img, 0, 0)
+
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+            const data = imageData.data
+
+            const blackThreshold = 20
+            const whiteThreshold = 235
+
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i]
+              const g = data[i + 1]
+              const b = data[i + 2]
+              const a = data[i + 3] // Alpha channel
+
+              // If pixel is fully transparent, ignore it for B&W check
+              if (a === 0) continue
+
+              // Check if R, G, B are very close (grayscale) AND within black/white thresholds
+              if (Math.abs(r - g) > 10 || Math.abs(r - b) > 10 || !(r <= blackThreshold || r >= whiteThreshold)) {
+                resolve(false) // Found a pixel that is not strictly black or white
+                return
+              }
+            }
+            resolve(true) // All pixels are strictly black or white
+          } catch (error) {
+            debugLog("❌ Error processing image for strict B&W detection:", error)
+            resolve(false)
+          }
+        }
+        img.onerror = () => {
+          debugLog("❌ Image loading error for strict B&W detection.")
+          resolve(false)
+        }
+        img.src = e.target.result
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  showBlackImageBadge() {
+    if (this.blackImageBadge) {
+      this.blackImageBadge.classList.remove("d-none")
+    }
+  }
+
+  hideBlackImageBadge() {
+    if (this.blackImageBadge) {
+      this.blackImageBadge.classList.add("d-none")
     }
   }
 
@@ -377,19 +522,23 @@ class ImageUploader {
         return
       }
 
-      validFiles.forEach((file) => {
+      validFiles.forEach(async (file) => {
+        // Added async here
         const fileData = {
           file: file,
           id: Date.now() + Math.random(),
           status: "pending",
           preview: null,
           result: null,
+          isBlackImage: false, // New property for bulk files
         }
 
         try {
           const reader = new FileReader()
-          reader.onload = (e) => {
+          reader.onload = async (e) => {
+            // Added async here
             fileData.preview = e.target.result
+            fileData.isBlackImage = await this.checkIfStrictlyBlackAndWhite(file) // Detect for each bulk file
             this.updateBulkPreview()
           }
           reader.readAsDataURL(file)
@@ -430,6 +579,9 @@ class ImageUploader {
     if (!fileData) return ""
 
     try {
+      const blackImageBadgeHtml = fileData.isBlackImage
+        ? '<span class="badge bg-dark text-light position-absolute top-0 end-0 m-1">B&W</span>'
+        : ""
       return `
         <div class="bulk-preview-item" data-id="${fileData.id}">
           ${
@@ -437,6 +589,7 @@ class ImageUploader {
               ? `<img src="${fileData.preview}" alt="${fileData.file.name}">`
               : '<div class="preview-placeholder">Loading...</div>'
           }
+          ${blackImageBadgeHtml}
           <button type="button" class="remove-btn" onclick="window.imageUploader?.removeBulkFile('${fileData.id}')">&times;</button>
           <div class="status ${fileData.status}">${this.getStatusText(fileData.status)}</div>
         </div>
@@ -616,6 +769,8 @@ class ImageUploader {
       formData.append("bulk_group_id", groupId)
       formData.append("bulk_position", position.toString())
       formData.append("image", fileData.file)
+      formData.append("requested_mode", "normal") // Bulk mode always requests 'normal' processing
+      formData.append("is_black_image", fileData.isBlackImage ? "true" : "false") // Pass client-side B&W flag
 
       debugLog("📡 Sending request to upload_handler.php")
 
@@ -684,10 +839,11 @@ class ImageUploader {
     if (!fileData) return ""
 
     try {
+      const blackImageNote = fileData.isBlackImage ? " (B&W)" : ""
       return `
         <div class="queue-item pending" data-id="${fileData.id}">
           <span class="queue-item-icon">📄</span>
-          <span class="queue-item-name">${fileData.file.name}</span>
+          <span class="queue-item-name">${fileData.file.name}${blackImageNote}</span>
           <span class="queue-item-status">Pending</span>
         </div>
       `
@@ -975,6 +1131,11 @@ class ImageUploader {
       this.showProgress()
 
       const formData = new FormData(this.form)
+      // Pass the requested mode to the backend
+      formData.append("requested_mode", this.currentSingleMode)
+      // Pass the client-side B&W detection result (backend will re-verify)
+      formData.append("is_black_image", this.isBlackImageDetected ? "true" : "false")
+
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 300000)
 
@@ -1003,6 +1164,10 @@ class ImageUploader {
       if (result.success) {
         this.showVectorizedResult(result.svg_url)
         this.showResult(result.svg_url, result.svg_filename)
+        // Display message from backend, especially if mode was switched
+        if (result.message) {
+          window.VectorizeUtils.showToast(result.message, "success")
+        }
       } else {
         this.showError(result.error || "Upload failed")
       }
@@ -1117,14 +1282,19 @@ class ImageUploader {
   }
 
   updateCoinsCount() {
-    if (!this.coinsCount) return
-
-    try {
-      const current = Number.parseInt(this.coinsCount.textContent) || 0
-      this.coinsCount.textContent = Math.max(0, current - 1)
-    } catch (error) {
-      debugLog("❌ Error updating coins count:", error.message)
-    }
+    // This function now needs to fetch the actual remaining coins from the backend
+    // as the deduction logic is more complex (0.5, 1, or 0 points).
+    // For now, it's a placeholder. A real implementation would fetch from an API.
+    debugLog("ℹ️ Coins count update triggered. Fetching actual count from backend is recommended here.")
+    // Example: Fetch from an API endpoint
+    // fetch('/php/api/get_coins_remaining.php')
+    //   .then(response => response.json())
+    //   .then(data => {
+    //     if (data.success && this.coinsCount) {
+    //       this.coinsCount.textContent = data.coins_remaining;
+    //     }
+    //   })
+    //   .catch(error => debugLog("❌ Failed to fetch updated coins count:", error));
   }
 
   safeGetElement(id) {

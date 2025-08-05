@@ -1,5 +1,6 @@
 <?php
 require_once 'utils.php';
+require_once 'config.php'; // Ensure config is loaded for Stripe keys
 
 // Verify webhook signature
 $payload = @file_get_contents('php://input');
@@ -7,10 +8,10 @@ $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
 
 try {
     require_once '../vendor/autoload.php';
-    \Stripe\Stripe::setApiKey($STRIPE_SECRET_KEY);
+    \Stripe\Stripe::setApiKey(STRIPE_SECRET_KEY);
     
     $event = \Stripe\Webhook::constructEvent(
-        $payload, $sig_header, $STRIPE_WEBHOOK_SECRET
+        $payload, $sig_header, STRIPE_WEBHOOK_SECRET
     );
 } catch (\UnexpectedValueException $e) {
     // Invalid payload

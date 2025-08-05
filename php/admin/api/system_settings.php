@@ -9,15 +9,15 @@ $pdo = connectDB();
 
 try {
     // Check if settings table exists, create if not
-    $stmt = $pdo->query("SHOW TABLES LIKE 'system_settings'");
-    if ($stmt->rowCount() == 0) {
+    $stmt = $pdo->query("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'system_settings')");
+    if (!$stmt->fetchColumn()) {
         $pdo->exec("
             CREATE TABLE system_settings (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 setting_key VARCHAR(100) UNIQUE NOT NULL,
                 setting_value TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         ");
         

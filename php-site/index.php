@@ -9,6 +9,7 @@ require_once 'php/utils.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="../assets/images/vectra-hub-logo2.png" type="image/png">
     
     <!-- SEO Meta Tags -->
     <title>Free AI Image Vectorizer | Convert JPG PNG to SVG Online - VectraHub</title>

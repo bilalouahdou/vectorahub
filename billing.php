@@ -1,5 +1,6 @@
 <?php
 require_once 'php/utils.php';
+require_once 'php/config.php'; // Ensure config is loaded for Stripe keys
 redirectIfNotAuth();
 
 $userId = $_SESSION['user_id'];
@@ -13,7 +14,7 @@ $paymentError = '';
 if (isset($_GET['session_id'])) {
     try {
         require_once 'vendor/autoload.php';
-        \Stripe\Stripe::setApiKey($STRIPE_SECRET_KEY);
+        \Stripe\Stripe::setApiKey(STRIPE_SECRET_KEY);
         
         $session = \Stripe\Checkout\Session::retrieve($_GET['session_id']);
         
@@ -40,6 +41,9 @@ if (isset($_GET['session_id'])) {
         $paymentError = 'Payment verification failed. Please contact support if you were charged.';
     }
 }
+// Handle free plan activation success message
+$activationSuccess = isset($_GET['activation_success']);
+
 
 // Get available plans
 try {
@@ -76,6 +80,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Billing & Subscription - VectorizeAI</title>
+    <link rel="icon" href="assets/images/vectra-hub-logo2.png" type="image/png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="assets/css/custom.css" rel="stylesheet">
@@ -106,6 +111,12 @@ try {
                 <p class="mb-0"><?php echo htmlspecialchars($paymentError); ?></p>
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+        <?php elseif ($activationSuccess): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <h5>🎉 Free Plan Activated!</h5>
+                <p class="mb-0">Your free plan has been successfully activated.</p>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
         <?php endif; ?>
 
         <!-- Current Status -->
@@ -117,6 +128,9 @@ try {
                         <h3 class="text-accent"><?php echo htmlspecialchars($currentSubscription['name']); ?></h3>
                         <p class="mb-1">Expires: <?php echo formatDate($currentSubscription['end_date']); ?></p>
                         <p class="mb-0">Coin Limit: <?php echo number_format($currentSubscription['coin_limit']); ?></p>
+                        <?php if ($currentSubscription['unlimited_black_images']): ?>
+                            <p class="mb-0 text-success">✅ Unlimited Black Image Vectorizations</p>
+                        <?php endif; ?>
                     <?php else: ?>
                         <h3 class="text-muted">No Active Plan</h3>
                         <p class="mb-0">Choose a plan below to get started</p>
@@ -125,7 +139,7 @@ try {
             </div>
             <div class="col-md-6">
                 <div class="admin-card">
-                    <h5>Coins Remaining</h5>
+                    <h5>Coins Remaining (Standard)</h5>
                     <h3 class="text-accent"><?php echo number_format($coinsRemaining); ?></h3>
                     <p class="mb-0">
                         <?php if ($coinsRemaining <= 5): ?>
@@ -150,6 +164,10 @@ try {
                             <div class="position-absolute top-0 start-50 translate-middle">
                                 <span class="badge bg-accent text-dark">Most Popular</span>
                             </div>
+                        <?php elseif ($plan['name'] === 'Black Unlimited Pack'): ?>
+                            <div class="position-absolute top-0 start-50 translate-middle">
+                                <span class="badge bg-dark text-light">New!</span>
+                            </div>
                         <?php endif; ?>
                         
                         <h4 class="mt-3"><?php echo htmlspecialchars($plan['name']); ?></h4>
@@ -160,6 +178,9 @@ try {
                         
                         <div class="mb-4">
                             <h5><?php echo number_format($plan['coin_limit']); ?> Coins</h5>
+                            <?php if ($plan['unlimited_black_images']): ?>
+                                <p class="small text-success fw-bold mb-1">Unlimited Black Images</p>
+                            <?php endif; ?>
                             <p class="small text-muted"><?php echo htmlspecialchars($plan['features'] ?? ''); ?></p>
                         </div>
                         
@@ -172,10 +193,18 @@ try {
                                     <span class="btn-text">Buy Now</span>
                                     <span class="spinner-border spinner-border-sm d-none" role="status"></span>
                                 </button>
-                            <?php else: ?>
-                                <button class="btn btn-outline-secondary w-100" disabled>
-                                    Current Plan
-                                </button>
+                            <?php else: // This is the Free plan ?>
+                                <?php if ($currentSubscription['name'] === 'Free'): ?>
+                                    <button class="btn btn-outline-secondary w-100" disabled>
+                                        Current Plan
+                                    </button>
+                                <?php else: ?>
+                                    <button class="btn btn-primary w-100 activate-free-plan-btn" 
+                                            data-plan-id="<?php echo $plan['id']; ?>">
+                                        <span class="btn-text">Activate Free Plan</span>
+                                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                                    </button>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -231,7 +260,7 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Initialize Stripe
-        const stripe = Stripe('<?php echo $STRIPE_PUBLISHABLE_KEY; ?>');
+        const stripe = Stripe('<?php echo STRIPE_PUBLISHABLE_KEY; ?>');
         const csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
         
         // Handle buy now buttons
@@ -289,6 +318,118 @@ try {
                 }
             });
         });
+
+        // Handle activate free plan button
+        document.querySelectorAll('.activate-free-plan-btn').forEach(button => {
+            button.addEventListener('click', async function() {
+                const planId = this.dataset.planId;
+                
+                // Show loading state
+                const btnText = this.querySelector('.btn-text');
+                const spinner = this.querySelector('.spinner-border');
+                const originalText = btnText.textContent;
+                
+                btnText.textContent = 'Activating...';
+                spinner.classList.remove('d-none');
+                this.disabled = true;
+                
+                try {
+                    const response = await fetch('php/activate_free_plan.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            plan_id: planId,
+                            csrf_token: csrfToken
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Reload page to reflect changes
+                        window.location.href = 'billing.php?activation_success=true';
+                    } else {
+                        alert('Error: ' + (result.error || 'Failed to activate free plan'));
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Network error. Please try again.');
+                } finally {
+                    // Reset button state (though page reload will happen on success)
+                    btnText.textContent = originalText;
+                    spinner.classList.add('d-none');
+                    this.disabled = false;
+                }
+            });
+        });
     </script>
+    
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-5" role="contentinfo">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="assets/images/vectra-hub-logo.png" alt="VectraHub Logo" height="24" class="me-2">
+                        <h3 class="h5 mb-0">VectraHub</h3>
+                    </div>
+                    <p class="mb-3">Free AI-powered image vectorization tool for designers, print shops, and students worldwide.</p>
+                    <div class="social-links">
+                        <a href="#" class="text-light me-3" aria-label="Follow us on Twitter">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-light me-3" aria-label="Follow us on Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-light" aria-label="Follow us on Pinterest">
+                            <i class="fab fa-pinterest"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <h4 class="h6 mb-3">Tools</h4>
+                    <ul class="list-unstyled">
+                        <li><a href="/" class="text-light">Image Vectorizer</a></li>
+                        <li><a href="/batch-converter/" class="text-light">Batch Converter</a></li>
+                        <li><a href="/api/" class="text-light">API Access</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h4 class="h6 mb-3">Resources</h4>
+                    <ul class="list-unstyled">
+                        <li><a href="/blog/" class="text-light">Blog</a></li>
+                        <li><a href="/tutorials/" class="text-light">Tutorials</a></li>
+                        <li><a href="/examples/" class="text-light">Examples</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h4 class="h6 mb-3">Support</h4>
+                    <ul class="list-unstyled">
+                        <li><a href="/help/" class="text-light">Help Center</a></li>
+                        <li><a href="/contact/" class="text-light">Contact</a></li>
+                        <li><a href="/feedback/" class="text-light">Feedback</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h4 class="h6 mb-3">Legal</h4>
+                    <ul class="list-unstyled">
+                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
+                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; 2024 VectraHub. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Made with ❤️ for designers worldwide</p>
+                </div>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>

@@ -18,10 +18,8 @@ try {
     $stmt->execute([$userId]);
     $successfulJobs = $stmt->fetchColumn();
     
-    // Get user's current coins
-    $stmt = $pdo->prepare("SELECT coins FROM users WHERE id = ?");
-    $stmt->execute([$userId]);
-    $currentCoins = $stmt->fetchColumn() ?: 0;
+    // Get user's current coins (calculate from subscription and usage)
+    $currentCoins = getUserCoinsRemaining($userId);
     
     echo json_encode([
         'total_jobs' => (int)$totalJobs,

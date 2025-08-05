@@ -61,7 +61,7 @@ try {
         $whereClause 
         GROUP BY u.id, u.full_name, u.email, u.role, sp.name, sp.coin_limit
         ORDER BY u.id DESC 
-        LIMIT $limit OFFSET $offset
+        LIMIT ? OFFSET ?
     ";
     $stmt = $pdo->prepare($query);
     $stmt->execute(array_merge($params, [$limit, $offset]));

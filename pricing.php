@@ -1,7 +1,6 @@
 <?php
 require_once 'php/config.php';
 require_once 'php/utils.php';
-redirectIfNotAuth();
 
 // Fetch plans from database
 try {
@@ -17,9 +16,13 @@ try {
 // Determine recommended plan (Ultimate plan)
 $recommendedPlanName = 'Ultimate';
 
-// Get current user's subscription for comparison
-$currentSubscription = getCurrentUserSubscription($_SESSION['user_id']);
-$currentPlanId = $currentSubscription['plan_id'] ?? null;
+// Get current user's subscription for comparison (if logged in)
+$currentSubscription = null;
+$currentPlanId = null;
+if (isLoggedIn() && isset($_SESSION['user_id'])) {
+    $currentSubscription = getCurrentUserSubscription($_SESSION['user_id']);
+    $currentPlanId = $currentSubscription['plan_id'] ?? null;
+}
 
 // Function to calculate yearly price with 20% discount
 function calculateYearlyPrice($monthlyPrice) {
@@ -41,6 +44,7 @@ function calculateYearlySavings($monthlyPrice) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pricing - VectorizeAI</title>
+    <link rel="icon" href="assets/images/vectra-hub-logo2.png" type="image/png">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="assets/css/custom.css" rel="stylesheet">
@@ -50,7 +54,7 @@ function calculateYearlySavings($monthlyPrice) {
         <!-- Breadcrumb Navigation -->
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="dashboard.php" class="text-accent">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="index.php" class="text-accent">Home</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Pricing</li>
             </ol>
         </nav>
@@ -79,7 +83,9 @@ function calculateYearlySavings($monthlyPrice) {
                                        style="text-transform: uppercase;">
                                 <button class="btn btn-accent" type="submit">Apply Coupon</button>
                             </div>
-                            <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                            <?php if (isLoggedIn() && isset($_SESSION['csrf_token'])): ?>
+                                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                            <?php endif; ?>
                         </form>
                         <div id="couponMessage"></div>
                         
@@ -352,5 +358,71 @@ function calculateYearlySavings($monthlyPrice) {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/pricing.js"></script>
+    
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-5" role="contentinfo">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="assets/images/vectra-hub-logo.png" alt="VectraHub Logo" height="24" class="me-2">
+                        <h3 class="h5 mb-0">VectraHub</h3>
+                    </div>
+                    <p class="mb-3">Free AI-powered image vectorization tool for designers, print shops, and students worldwide.</p>
+                    <div class="social-links">
+                        <a href="#" class="text-light me-3" aria-label="Follow us on Twitter">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-light me-3" aria-label="Follow us on Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="text-light" aria-label="Follow us on Pinterest">
+                            <i class="fab fa-pinterest"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <h4 class="h6 mb-3">Tools</h4>
+                    <ul class="list-unstyled">
+                        <li><a href="/" class="text-light">Image Vectorizer</a></li>
+                        <li><a href="/batch-converter/" class="text-light">Batch Converter</a></li>
+                        <li><a href="/api/" class="text-light">API Access</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h4 class="h6 mb-3">Resources</h4>
+                    <ul class="list-unstyled">
+                        <li><a href="/blog/" class="text-light">Blog</a></li>
+                        <li><a href="/tutorials/" class="text-light">Tutorials</a></li>
+                        <li><a href="/examples/" class="text-light">Examples</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h4 class="h6 mb-3">Support</h4>
+                    <ul class="list-unstyled">
+                        <li><a href="/help/" class="text-light">Help Center</a></li>
+                        <li><a href="/contact/" class="text-light">Contact</a></li>
+                        <li><a href="/feedback/" class="text-light">Feedback</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-2">
+                    <h4 class="h6 mb-3">Legal</h4>
+                    <ul class="list-unstyled">
+                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
+                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="my-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0">&copy; 2024 VectraHub. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-0">Made with ❤️ for designers worldwide</p>
+                </div>
+            </div>
+        </div>
+    </footer>
 </body>
 </html>

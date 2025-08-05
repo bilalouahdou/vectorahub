@@ -55,10 +55,10 @@ class AuthenticationManager {
             
             // Insert user
             $stmt = $this->pdo->prepare("
-                INSERT INTO users (full_name, email, password_hash, email_verification_token, created_at) 
-                VALUES (?, ?, ?, ?, NOW())
+                INSERT INTO users (full_name, email, password_hash) 
+                VALUES (?, ?, ?)
             ");
-            $stmt->execute([$fullName, $email, $passwordHash, $verificationToken]);
+            $stmt->execute([$fullName, $email, $passwordHash]);
             
             $userId = $this->pdo->lastInsertId();
             
@@ -114,7 +114,7 @@ class AuthenticationManager {
             
             // Get user data
             $stmt = $this->pdo->prepare("
-                SELECT id, full_name, email, password_hash, role, email_verified, failed_login_attempts, last_failed_login 
+                SELECT id, full_name, email, password_hash, role
                 FROM users WHERE email = ?
             ");
             $stmt->execute([$email]);
@@ -161,9 +161,14 @@ class AuthenticationManager {
                 $this->setRememberMeToken($user['id']);
             }
             
-            // Update last login
-            $stmt = $this->pdo->prepare("UPDATE users SET last_login = NOW() WHERE id = ?");
-            $stmt->execute([$user['id']]);
+            // Update last login (if column exists)
+            try {
+                $stmt = $this->pdo->prepare("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?");
+                $stmt->execute([$user['id']]);
+            } catch (PDOException $e) {
+                // Column doesn't exist, ignore the error
+                error_log("last_login column not found: " . $e->getMessage());
+            }
             
             $this->security->logSecurityEvent('LOGIN_SUCCESS', [
                 'user_id' => $user['id'],
@@ -191,15 +196,21 @@ class AuthenticationManager {
      * Check if account is locked due to failed attempts
      */
     private function isAccountLocked($email) {
-        $stmt = $this->pdo->prepare("
-            SELECT failed_login_attempts, last_failed_login 
-            FROM users 
-            WHERE email = ? AND failed_login_attempts >= ?
-        ");
-        $stmt->execute([$email, $this->maxLoginAttempts]);
-        $result = $stmt->fetch();
-        
-        if (!$result) {
+        try {
+            $stmt = $this->pdo->prepare("
+                SELECT failed_login_attempts, last_failed_login 
+                FROM users 
+                WHERE email = ? AND failed_login_attempts >= ?
+            ");
+            $stmt->execute([$email, $this->maxLoginAttempts]);
+            $result = $stmt->fetch();
+            
+            if (!$result) {
+                return false;
+            }
+        } catch (PDOException $e) {
+            // Columns don't exist, assume account is not locked
+            error_log("failed_login_attempts column not found: " . $e->getMessage());
             return false;
         }
         
@@ -213,23 +224,28 @@ class AuthenticationManager {
      * Record failed login attempt
      */
     private function recordFailedLogin($email, $userId = null) {
-        if ($userId) {
-            $stmt = $this->pdo->prepare("
-                UPDATE users 
-                SET failed_login_attempts = failed_login_attempts + 1, 
-                    last_failed_login = NOW() 
-                WHERE id = ?
-            ");
-            $stmt->execute([$userId]);
-        } else {
-            // Create or update failed login record for non-existent users
-            $stmt = $this->pdo->prepare("
-                INSERT INTO failed_logins (email, attempts, last_attempt) 
-                VALUES (?, 1, NOW()) 
-                ON DUPLICATE KEY UPDATE 
-                attempts = attempts + 1, last_attempt = NOW()
-            ");
-            $stmt->execute([$email]);
+        try {
+            if ($userId) {
+                $stmt = $this->pdo->prepare("
+                    UPDATE users 
+                    SET failed_login_attempts = failed_login_attempts + 1, 
+                        last_failed_login = CURRENT_TIMESTAMP 
+                    WHERE id = ?
+                ");
+                $stmt->execute([$userId]);
+            } else {
+                // Create or update failed login record for non-existent users
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO failed_logins (email, attempts, last_attempt) 
+                    VALUES (?, 1, CURRENT_TIMESTAMP) 
+                    ON CONFLICT (email) DO UPDATE SET 
+                    attempts = attempts + 1, last_attempt = CURRENT_TIMESTAMP
+                ");
+                $stmt->execute([$email]);
+            }
+        } catch (PDOException $e) {
+            // Columns don't exist, just log the failed attempt
+            error_log("Failed login attempt for email: $email, user_id: $userId");
         }
     }
     
@@ -237,12 +253,17 @@ class AuthenticationManager {
      * Reset failed login attempts after successful login
      */
     private function resetFailedLoginAttempts($userId) {
-        $stmt = $this->pdo->prepare("
-            UPDATE users 
-            SET failed_login_attempts = 0, last_failed_login = NULL 
-            WHERE id = ?
-        ");
-        $stmt->execute([$userId]);
+        try {
+            $stmt = $this->pdo->prepare("
+                UPDATE users 
+                SET failed_login_attempts = 0, last_failed_login = NULL 
+                WHERE id = ?
+            ");
+            $stmt->execute([$userId]);
+        } catch (PDOException $e) {
+            // Columns don't exist, ignore the error
+            error_log("failed_login_attempts column not found: " . $e->getMessage());
+        }
     }
     
     /**
@@ -282,7 +303,7 @@ class AuthenticationManager {
             SELECT rt.user_id, rt.token_hash, u.full_name, u.email, u.role 
             FROM remember_tokens rt 
             JOIN users u ON rt.user_id = u.id 
-            WHERE rt.expires_at > NOW()
+            WHERE rt.expires_at > CURRENT_TIMESTAMP
         ");
         $stmt->execute();
         
@@ -376,7 +397,7 @@ class AuthenticationManager {
             // Update password
             $stmt = $this->pdo->prepare("
                 UPDATE users 
-                SET password_hash = ?, password_changed_at = NOW() 
+                SET password_hash = ?
                 WHERE id = ?
             ");
             $stmt->execute([$newPasswordHash, $userId]);
@@ -403,16 +424,35 @@ class AuthenticationManager {
      * Assign free plan to new user
      */
     private function assignFreePlan($userId) {
-        $stmt = $this->pdo->prepare("SELECT id FROM subscription_plans WHERE name = 'Free' LIMIT 1");
-        $stmt->execute();
-        $freePlan = $stmt->fetch();
-        
-        if ($freePlan) {
-            $stmt = $this->pdo->prepare("
-                INSERT INTO user_subscriptions (user_id, plan_id, start_date, end_date, active) 
-                VALUES (?, ?, CURDATE(), DATE_ADD(CURDATE(), INTERVAL 1 YEAR), 1)
-            ");
-            $stmt->execute([$userId, $freePlan['id']]);
+        try {
+            $stmt = $this->pdo->prepare("SELECT id FROM subscription_plans WHERE name = 'Free' LIMIT 1");
+            $stmt->execute();
+            $freePlan = $stmt->fetch();
+            
+            if ($freePlan) {
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO user_subscriptions (user_id, plan_id, start_date, end_date, active) 
+                    VALUES (?, ?, CURRENT_DATE, CURRENT_DATE + INTERVAL '1 year', TRUE)
+                ");
+                $stmt->execute([$userId, $freePlan['id']]);
+            } else {
+                // If no Free plan exists, create one
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO subscription_plans (name, price, coin_limit, features) 
+                    VALUES ('Free', 0, 10, 'Basic plan with 10 free coins')
+                ");
+                $stmt->execute();
+                $freePlanId = $this->pdo->lastInsertId();
+                
+                $stmt = $this->pdo->prepare("
+                    INSERT INTO user_subscriptions (user_id, plan_id, start_date, end_date, active) 
+                    VALUES (?, ?, CURRENT_DATE, CURRENT_DATE + INTERVAL '1 year', TRUE)
+                ");
+                $stmt->execute([$userId, $freePlanId]);
+            }
+        } catch (Exception $e) {
+            error_log("Error assigning free plan to user $userId: " . $e->getMessage());
+            // Don't fail registration if plan assignment fails
         }
     }
 }

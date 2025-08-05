@@ -1,8 +1,10 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from PIL import Image
 import httpx
 import os
 import logging
+import io
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +44,29 @@ async def root():
         "salad_key_configured": bool(SALAD_KEY)
     }
 
+def is_black_and_white(image_bytes: bytes) -> bool:
+    """
+    Strictly checks if an image is purely black and white (or grayscale).
+    Returns True only if all pixels are either very dark or very light.
+    """
+    try:
+        image = Image.open(io.BytesIO(image_bytes)).convert("L") # Convert to grayscale
+        
+        # Define strict thresholds for "black" and "white"
+        black_threshold = 20  # Pixels darker than this are considered black
+        white_threshold = 235 # Pixels lighter than this are considered white
+        
+        # Iterate through all pixels
+        for pixel_value in image.getdata():
+            # If a pixel is NOT black AND NOT white, then it's not purely B&W
+            if not (pixel_value <= black_threshold or pixel_value >= white_threshold):
+                return False # Found a pixel that is not strictly black or white
+        
+        return True # All pixels are strictly black or white
+    except Exception as e:
+        logger.error(f"Error checking if image is black and white: {e}")
+        return False # Default to false on error, treat as regular image
+
 @app.post("/vectorize")
 async def vectorize_image(image: UploadFile = File(...)):
     """
@@ -68,6 +93,9 @@ async def vectorize_image(image: UploadFile = File(...)):
             detail="File too large. Maximum size is 10MB."
         )
     
+    is_black_image = is_black_and_white(content)
+    logger.info(f"Image '{image.filename}' detected as strictly black and white: {is_black_image}")
+
     try:
         # Prepare the request to Salad API
         files = {
@@ -92,10 +120,22 @@ async def vectorize_image(image: UploadFile = File(...)):
             if response.status_code == 200:
                 result = response.json()
                 logger.info("Vectorization successful")
+                
+                # Return SVG content directly for PHP to save and serve
+                if 'svg_content' not in result:
+                    raise HTTPException(
+                        status_code=500,
+                        detail="Salad API did not return SVG content."
+                    )
+
                 return {
-                    "status": "success",
+                    "success": True,
                     "message": "Image vectorized successfully",
-                    "data": result,
+                    "data": {
+                        "svg_content": result['svg_content'],
+                        "svg_filename": f"{os.path.splitext(image.filename)[0]}.svg" # Ensure .svg extension
+                    },
+                    "is_black_image": is_black_image, # Pass this strict B&W flag back to PHP
                     "filename": image.filename
                 }
             else:

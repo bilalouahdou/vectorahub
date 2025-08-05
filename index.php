@@ -9,7 +9,7 @@ require_once 'php/utils.php';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+    <link rel="icon" href="assets/images/vectra-hub-logo2.png" type="image/png">
     <!-- SEO Meta Tags -->
     <title>Free AI Image Vectorizer | Convert JPG PNG to SVG Online - VectraHub</title>
     <meta name="description" content="Transform images to crisp SVG vectors instantly with VectraHub. Free AI-powered tool for designers, print shops & students. Batch upload, perfect for logos & graphics.">
@@ -518,8 +518,8 @@ require_once 'php/utils.php';
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Legal</h4>
                     <ul class="list-unstyled">
-                        <li><a href="/privacy/" class="text-light">Privacy Policy</a></li>
-                        <li><a href="/terms/" class="text-light">Terms of Service</a></li>
+                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
+                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
                     </ul>
                 </div>
             </div>

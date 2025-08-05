@@ -1,39 +1,20 @@
 <?php
+session_start();
+require_once 'php/config.php';
 require_once 'php/utils.php';
 redirectIfNotAuth();
 
 $userId = $_SESSION['user_id'];
 $csrfToken = generateCsrfToken();
 
-// Fetch current ad view status
-$adStatus = ['success' => false, 'error' => 'Not loaded'];
-try {
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, APP_URL . '/php/api/ad_view.php');
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_COOKIE, session_name() . '=' . session_id()); // Pass session cookie
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+// Get current coins
+$coinsRemaining = getUserCoinsRemaining($userId);
 
-    if ($response === false) {
-        throw new Exception("Failed to fetch ad status: cURL error.");
-    }
-
-    $adStatus = json_decode($response, true);
-    if ($httpCode !== 200 || !($adStatus['success'] ?? false)) {
-        throw new Exception($adStatus['error'] ?? 'Unknown error fetching ad status.');
-    }
-} catch (Exception $e) {
-    error_log("Error fetching ad status: " . $e->getMessage());
-    $adStatus['error'] = $e->getMessage();
-}
-
-$currentViews = $adStatus['current_views'] ?? 0;
-$maxViews = $adStatus['max_views'] ?? 5;
-$coinsPerView = $adStatus['coins_per_view'] ?? 3;
+// Simple ad view tracking - get from database or use session
+$currentViews = getDailyAdViews($userId);
+$maxViews = 5; // 5 ads per day
+$coinsPerView = 3; // 3 coins per ad
 $canWatchAd = $currentViews < $maxViews;
-$coinsRemaining = getUserCoinsRemaining($userId); // Get updated coins
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -53,16 +34,12 @@ $coinsRemaining = getUserCoinsRemaining($userId); // Get updated coins
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center">
                     <h1 class="display-5 fw-bold">Ad Rewards</h1>
-                    <a href="dashboard.php" class="btn btn-outline-secondary">← Back to Dashboard</a>
+                    <a href="dashboard" class="btn btn-outline-secondary">← Back to Dashboard</a>
                 </div>
             </div>
         </div>
 
-        <?php if (!($adStatus['success'] ?? false)): ?>
-            <div class="alert alert-danger" role="alert">
-                Failed to load ad reward data: <?php echo htmlspecialchars($adStatus['error']); ?>
-            </div>
-        <?php endif; ?>
+
 
         <div class="admin-card mb-5 text-center">
             <h2 class="mb-3">Watch Ads, Earn Coins!</h2>
@@ -103,7 +80,6 @@ $coinsRemaining = getUserCoinsRemaining($userId); // Get updated coins
                 watchAdBtn.addEventListener('click', async function() {
                     if (this.disabled) return;
 
-                    // Simulate ad watching (replace with actual ad integration)
                     const btnText = this.querySelector('.btn-text');
                     const spinner = this.querySelector('.spinner-border');
                     const originalText = btnText.textContent;
@@ -112,24 +88,29 @@ $coinsRemaining = getUserCoinsRemaining($userId); // Get updated coins
                     spinner.classList.remove('d-none');
                     this.disabled = true;
 
-                    await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate ad loading time
+                    // Simulate ad watching (3 seconds)
+                    await new Promise(resolve => setTimeout(resolve, 3000));
 
                     try {
                         const formData = new FormData();
                         formData.append('csrf_token', csrfToken);
 
-                        const response = await fetch('php/api/ad_view.php', {
+                        const response = await fetch('php/record_ad_view.php', {
                             method: 'POST',
                             body: formData
                         });
                         const result = await response.json();
 
                         if (result.success) {
-                            VectorizeUtils.showToast(`🎉 You earned ${result.coins_earned} coins!`, 'success');
-                            adViewsCountSpan.textContent = result.new_view_count;
+                            // Update UI
+                            const newViewCount = parseInt(adViewsCountSpan.textContent) + 1;
+                            adViewsCountSpan.textContent = newViewCount;
                             coinsRemainingCountSpan.textContent = result.coins_remaining.toLocaleString();
 
-                            if (result.new_view_count >= maxViews) {
+                            // Show success message
+                            alert(`🎉 You earned ${coinsPerView} coins! Your new balance: ${result.coins_remaining} coins`);
+
+                            if (newViewCount >= maxViews) {
                                 watchAdBtn.disabled = true;
                                 btnText.textContent = 'Daily Ad Limit Reached';
                                 watchAdBtn.classList.remove('btn-accent');
@@ -139,13 +120,13 @@ $coinsRemaining = getUserCoinsRemaining($userId); // Get updated coins
                                 watchAdBtn.disabled = false;
                             }
                         } else {
-                            VectorizeUtils.showToast(`❌ ${result.error}`, 'danger');
+                            alert(`❌ ${result.error}`);
                             btnText.textContent = originalText;
                             watchAdBtn.disabled = false;
                         }
                     } catch (error) {
                         console.error('Error watching ad:', error);
-                        VectorizeUtils.showToast('Network error. Please try again.', 'danger');
+                        alert('Network error. Please try again.');
                         btnText.textContent = originalText;
                         watchAdBtn.disabled = false;
                     } finally {
@@ -197,16 +178,17 @@ $coinsRemaining = getUserCoinsRemaining($userId); // Get updated coins
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Support</h4>
                     <ul class="list-unstyled">
-                        <li><a href="/help/" class="text-light">Help Center</a></li>
-                        <li><a href="/contact/" class="text-light">Contact</a></li>
-                        <li><a href="/feedback/" class="text-light">Feedback</a></li>
+                        <li><a href="help" class="text-light">Help Center</a></li>
+                        <li><a href="contact" class="text-light">Contact</a></li>
+                        <li><a href="referral" class="text-light">Referral Program</a></li>
+                        <li><a href="ad-rewards" class="text-light">Earn Coins</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Legal</h4>
                     <ul class="list-unstyled">
-                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
-                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
+                        <li><a href="privacy" class="text-light">Privacy Policy</a></li>
+                        <li><a href="terms" class="text-light">Terms of Service</a></li>
                     </ul>
                 </div>
             </div>

@@ -91,24 +91,24 @@ require_once 'php/utils.php';
                             <a class="nav-link" href="/blog/" role="menuitem">Blog</a>
                         </li>
                         <li class="nav-item" role="none">
-                            <a class="nav-link" href="pricing.php" role="menuitem">Pricing</a>
+                            <a class="nav-link" href="pricing" role="menuitem">Pricing</a>
                         </li>
                         <li class="nav-item" role="none">
-                            <a class="nav-link" href="api_documentation.php" role="menuitem">API</a>
+                            <a class="nav-link" href="api_documentation" role="menuitem">API</a>
                         </li>
                         <?php if (isLoggedIn()): ?>
                             <li class="nav-item" role="none">
-                                <a class="nav-link" href="dashboard.php" role="menuitem">Dashboard</a>
+                                <a class="nav-link" href="dashboard" role="menuitem">Dashboard</a>
                             </li>
                             <li class="nav-item" role="none">
                                 <a class="nav-link" href="php/auth/logout.php" role="menuitem">Logout</a>
                             </li>
                         <?php else: ?>
                             <li class="nav-item" role="none">
-                                <a class="nav-link" href="login.php" role="menuitem">Login</a>
+                                <a class="nav-link" href="login" role="menuitem">Login</a>
                             </li>
                             <li class="nav-item" role="none">
-                                <a class="btn btn-accent ms-2" href="register.php" role="menuitem">Start Free</a>
+                                <a class="btn btn-accent ms-2" href="register" role="menuitem">Start Free</a>
                             </li>
                         <?php endif; ?>
                     </ul>
@@ -166,7 +166,7 @@ require_once 'php/utils.php';
                         
                         <?php if (!isLoggedIn()): ?>
                             <div class="hero-actions" role="group" aria-label="Get started actions">
-                                <a href="register.php" class="btn btn-accent btn-lg me-3" 
+                                <a href="register" class="btn btn-accent btn-lg me-3" 
                                    aria-describedby="free-signup-desc">Start Vectorizing Free</a>
                                 <a href="#upload" class="btn btn-outline-light btn-lg" 
                                    aria-describedby="try-now-desc">Try Demo</a>
@@ -258,7 +258,7 @@ require_once 'php/utils.php';
                                             <a href="register.php" class="btn btn-accent w-100" 
                                                aria-describedby="signup-benefit">Create Free Account</a>
                                             <p class="mt-3 small text-muted">
-                                                Already have an account? <a href="login.php" class="text-accent">Sign in</a>
+                                                Already have an account? <a href="login" class="text-accent">Sign in</a>
                                             </p>
                                             <div id="signup-benefit" class="visually-hidden">Get free credits to start vectorizing images</div>
                                         </div>
@@ -510,16 +510,19 @@ require_once 'php/utils.php';
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Support</h4>
                     <ul class="list-unstyled">
-                        <li><a href="/help/" class="text-light">Help Center</a></li>
-                        <li><a href="/contact/" class="text-light">Contact</a></li>
-                        <li><a href="/feedback/" class="text-light">Feedback</a></li>
+                        <li><a href="help" class="text-light">Help Center</a></li>
+                        <li><a href="contact" class="text-light">Contact</a></li>
+                        <li><a href="referral" class="text-light">Referral Program</a></li>
+                        <li><a href="ad-rewards" class="text-light">Earn Coins</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Legal</h4>
                     <ul class="list-unstyled">
-                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
-                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
+                        <li><a href="pricing" class="text-light">Pricing</a></li>
+                        <li><a href="terms" class="text-light">Terms</a></li>
+                        <li><a href="privacy" class="text-light">Privacy</a></li>
+                        <li><a href="refunds" class="text-light">Refunds</a></li>
                     </ul>
                 </div>
             </div>

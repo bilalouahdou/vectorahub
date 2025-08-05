@@ -47,13 +47,13 @@ function isAdmin() {
 
 function redirectIfNotAuth() {
     if (!isLoggedIn()) {
-        redirect('login.php');
+        redirect('login');
     }
 }
 
 function redirectIfNotAdmin() {
     if (!isAdmin()) {
-        redirect('dashboard.php'); // Or an unauthorized access page
+        redirect('dashboard'); // Or an unauthorized access page
     }
 }
 
@@ -370,17 +370,28 @@ function generateReferralCode($length = 8) {
     return bin2hex(random_bytes($length / 2));
 }
 
-function createReferralLinkForUser($userId) {
+function getOrCreateReferralLink($userId) {
     $pdo = getDBConnection();
+    
+    // First, try to get existing referral link
+    $stmt = $pdo->prepare("SELECT referral_code FROM referral_links WHERE user_id = ?");
+    $stmt->execute([$userId]);
+    $existingCode = $stmt->fetchColumn();
+    
+    if ($existingCode) {
+        return "https://vectrahub.online/register?ref=" . $existingCode;
+    }
+    
+    // If no existing link, create a new one
     $code = generateReferralCode();
     try {
         $stmt = $pdo->prepare("INSERT INTO referral_links (user_id, referral_code) VALUES (?, ?)");
         $stmt->execute([$userId, $code]);
-        return APP_URL . "/register.php?ref=" . $code;
+        return "https://vectrahub.online/register?ref=" . $code;
     } catch (PDOException $e) {
         // If code already exists (very rare), try again
         if ($e->getCode() == '23505') { // PostgreSQL unique violation error code
-            return createReferralLinkForUser($userId); // Recursively try again
+            return getOrCreateReferralLink($userId); // Recursively try again
         }
         error_log("Error creating referral link: " . $e->getMessage());
         return null;
@@ -396,11 +407,51 @@ function getReferrerIdFromCode($referralCode) {
 
 function recordReferralEvent($referrerUserId, $eventType, $referredUserId = null, $eventData = null) {
     $pdo = getDBConnection();
-            $stmt = $pdo->prepare("
-            INSERT INTO referral_events (referrer_user_id, referred_user_id, event_type, event_data, created_at)
-            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ");
+    $stmt = $pdo->prepare("
+        INSERT INTO referral_events (referrer_user_id, referred_user_id, event_type, event_data, created_at)
+        VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ");
     $stmt->execute([$referrerUserId, $referredUserId, $eventType, json_encode($eventData)]);
+}
+
+function processReferralRewards($referrerUserId, $newUserId) {
+    $pdo = getDBConnection();
+    $rewardAmount = 50; // 50 coins for both referrer and new user
+    
+    try {
+        $pdo->beginTransaction();
+        
+        // Award coins to referrer
+        addBonusCoins($referrerUserId, $rewardAmount, 'referral_reward');
+        
+        // Award coins to new user
+        addBonusCoins($newUserId, $rewardAmount, 'referral_signup_bonus');
+        
+        // Record referral reward for referrer
+        $stmt = $pdo->prepare("
+            INSERT INTO referral_rewards (user_id, referred_user_id, reward_type, amount, status, awarded_at)
+            VALUES (?, ?, 'bonus_coins', ?, 'awarded', CURRENT_TIMESTAMP)
+        ");
+        $stmt->execute([$referrerUserId, $newUserId, $rewardAmount]);
+        
+        // Record referral event
+        recordReferralEvent($referrerUserId, 'signup', $newUserId, [
+            'reward_amount' => $rewardAmount,
+            'ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown'
+        ]);
+        
+        // Log the referral
+        logActivity('REFERRAL_REWARD', "Referral reward processed: Referrer $referrerUserId and new user $newUserId each received $rewardAmount coins", $referrerUserId);
+        logActivity('REFERRAL_SIGNUP_BONUS', "New user $newUserId received $rewardAmount coins for signing up via referral", $newUserId);
+        
+        $pdo->commit();
+        return true;
+        
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log("Error processing referral rewards: " . $e->getMessage());
+        return false;
+    }
 }
 
 // --- Ad View Functions ---

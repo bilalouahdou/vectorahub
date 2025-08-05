@@ -61,28 +61,28 @@ require_once 'php/utils.php';
                             <a class="nav-link" href="/">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="pricing.php">Pricing</a>
+                                                    <a class="nav-link" href="pricing">Pricing</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="api_documentation">API</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="blog">Blog</a>
+                    </li>
+                    <?php if (isLoggedIn()): ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="dashboard">Dashboard</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="api_documentation.php">API</a>
+                            <a class="nav-link" href="php/auth/logout.php">Logout</a>
+                        </li>
+                    <?php else: ?>
+                        <li class="nav-item">
+                            <a class="nav-link" href="login">Login</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="blog.php">Blog</a>
+                            <a class="btn btn-accent ms-2" href="register">Start Free</a>
                         </li>
-                        <?php if (isLoggedIn()): ?>
-                            <li class="nav-item">
-                                <a class="nav-link" href="dashboard.php">Dashboard</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="php/auth/logout.php">Logout</a>
-                            </li>
-                        <?php else: ?>
-                            <li class="nav-item">
-                                <a class="nav-link" href="login.php">Login</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="btn btn-accent ms-2" href="register.php">Start Free</a>
-                            </li>
                         <?php endif; ?>
                     </ul>
                 </div>
@@ -286,16 +286,17 @@ require_once 'php/utils.php';
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Support</h4>
                     <ul class="list-unstyled">
-                        <li><a href="/help/" class="text-light">Help Center</a></li>
-                        <li><a href="/contact/" class="text-light">Contact</a></li>
-                        <li><a href="/feedback/" class="text-light">Feedback</a></li>
+                        <li><a href="help" class="text-light">Help Center</a></li>
+                        <li><a href="contact" class="text-light">Contact</a></li>
+                        <li><a href="referral" class="text-light">Referral Program</a></li>
+                        <li><a href="ad-rewards" class="text-light">Earn Coins</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Legal</h4>
                     <ul class="list-unstyled">
-                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
-                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
+                        <li><a href="privacy" class="text-light">Privacy Policy</a></li>
+                        <li><a href="terms" class="text-light">Terms of Service</a></li>
                     </ul>
                 </div>
             </div>

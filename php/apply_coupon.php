@@ -85,7 +85,7 @@ AND c.valid_until >= CURRENT_DATE
             'success' => true,
             'message' => $message ?? 'Coupon applied successfully!',
             'type' => $coupon['type'],
-            'redirect' => 'dashboard.php'
+            'redirect' => 'dashboard'
         ]);
         
     } catch (Exception $e) {

@@ -13,8 +13,8 @@ try {
     $plans = [];
 }
 
-// Determine recommended plan (Ultimate plan)
-$recommendedPlanName = 'Ultimate';
+// Determine recommended plan (Pro plan)
+$recommendedPlanName = 'Pro';
 
 // Get current user's subscription for comparison (if logged in)
 $currentSubscription = null;
@@ -54,7 +54,7 @@ function calculateYearlySavings($monthlyPrice) {
         <!-- Breadcrumb Navigation -->
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="index.php" class="text-accent">Home</a></li>
+                <li class="breadcrumb-item"><a href="/" class="text-accent">Home</a></li>
                 <li class="breadcrumb-item active" aria-current="page">Pricing</li>
             </ol>
         </nav>
@@ -140,12 +140,43 @@ function calculateYearlySavings($monthlyPrice) {
                                 <h3 class="fw-bold mb-3 <?php echo ($plan['name'] == $recommendedPlanName) ? 'text-accent' : ''; ?>">
                                     <?php echo htmlspecialchars($plan['name']); ?>
                                 </h3>
+                                
+                                <!-- Plan Description -->
+                                <p class="text-muted small mb-3">
+                                    <?php 
+                                    switch($plan['name']) {
+                                        case 'Free':
+                                            echo 'Perfect for getting started with vectorization';
+                                            break;
+                                        case 'Black Pack':
+                                            echo 'Unlimited black image processing with high volume';
+                                            break;
+                                        case 'Pro':
+                                            echo 'Most popular choice for professionals';
+                                            break;
+                                        case 'API Pro':
+                                            echo 'For developers and high-volume users';
+                                            break;
+                                        default:
+                                            echo 'Professional vectorization solution';
+                                    }
+                                    ?>
+                                </p>
 
                                 <!-- Coin Limit -->
                                 <div class="mb-4">
                                     <h4 class="text-primary">
-                                        <?php echo number_format($plan['coin_limit']); ?> 
-                                        <?php echo ($plan['name'] == 'API Pro') ? 'API Calls' : 'Coins'; ?>
+                                        <?php 
+                                        if ($plan['name'] == 'API Pro') {
+                                            echo number_format($plan['coin_limit']) . ' API Calls';
+                                        } elseif ($plan['name'] == 'Black Pack') {
+                                            echo number_format($plan['coin_limit']) . ' Coins';
+                                        } elseif ($plan['name'] == 'Free') {
+                                            echo '25 Coins';
+                                        } else {
+                                            echo number_format($plan['coin_limit']) . ' Coins';
+                                        }
+                                        ?>
                                     </h4>
                                     <p class="text-muted small">per month</p>
                                 </div>
@@ -228,21 +259,58 @@ function calculateYearlySavings($monthlyPrice) {
 
                                 <!-- Features/Description -->
                                 <div class="text-start">
-                                    <?php if (!empty($plan['features'])): ?>
-                                        <?php
-                                        // Convert features to bullet points
-                                        $features = explode(';', $plan['features']);
-                                        ?>
-                                        <ul class="list-unstyled">
-                                            <?php foreach ($features as $feature): ?>
-                                                <?php if (trim($feature)): ?>
-                                                    <li class="mb-2">
-                                                        <i class="text-accent">✓</i> <?php echo trim(htmlspecialchars($feature)); ?>
-                                                    </li>
-                                                <?php endif; ?>
-                                            <?php endforeach; ?>
-                                        </ul>
-                                    <?php endif; ?>
+                                    <?php 
+                                    // Define logical features based on plan name
+                                    $planFeatures = [];
+                                    switch($plan['name']) {
+                                        case 'Free':
+                                            $planFeatures = [
+                                                '25 vectorizations per month',
+                                                'Standard processing',
+                                                'Basic support'
+                                            ];
+                                            break;
+                                        case 'Black Unlimited Pack':
+                                            $planFeatures = [
+                                                'Unlimited black image vectorizations',
+                                                '1,000,000 standard image vectorizations',
+                                                'Priority processing',
+                                                'Email support'
+                                            ];
+                                            break;
+                                        case 'Pro':
+                                            $planFeatures = [
+                                                '500 vectorizations per month',
+                                                'Priority processing',
+                                                'Email support',
+                                                'HD output'
+                                            ];
+                                            break;
+                                        case 'API Pro':
+                                            $planFeatures = [
+                                                '5,000 vectorizations per month',
+                                                'API access',
+                                                'Priority processing',
+                                                'Premium support',
+                                                'Bulk operations'
+                                            ];
+                                            break;
+                                        default:
+                                            // Use database features if available
+                                            if (!empty($plan['features'])) {
+                                                $planFeatures = explode(';', $plan['features']);
+                                            }
+                                    }
+                                    ?>
+                                    <ul class="list-unstyled">
+                                        <?php foreach ($planFeatures as $feature): ?>
+                                            <?php if (trim($feature)): ?>
+                                                <li class="mb-2">
+                                                    <i class="text-accent">✓</i> <?php echo trim(htmlspecialchars($feature)); ?>
+                                                </li>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </ul>
                                 </div>
                             </div>
                         </div>
@@ -351,8 +419,8 @@ function calculateYearlySavings($monthlyPrice) {
         <div class="text-center mt-5 pt-5 border-top">
             <h3 class="mb-3">Ready to get started?</h3>
             <p class="text-muted mb-4">Join thousands of users who trust VectorizeAI for their image vectorization needs.</p>
-            <a href="dashboard.php" class="btn btn-outline-secondary me-3">← Back to Dashboard</a>
-            <a href="billing.php" class="btn btn-accent">View Billing</a>
+                                        <a href="dashboard" class="btn btn-outline-secondary me-3">← Back to Dashboard</a>
+                            <a href="billing" class="btn btn-accent">View Billing</a>
         </div>
     </div>
 
@@ -400,16 +468,19 @@ function calculateYearlySavings($monthlyPrice) {
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Support</h4>
                     <ul class="list-unstyled">
-                        <li><a href="/help/" class="text-light">Help Center</a></li>
-                        <li><a href="/contact/" class="text-light">Contact</a></li>
-                        <li><a href="/feedback/" class="text-light">Feedback</a></li>
+                        <li><a href="help" class="text-light">Help Center</a></li>
+                        <li><a href="contact" class="text-light">Contact</a></li>
+                        <li><a href="referral" class="text-light">Referral Program</a></li>
+                        <li><a href="ad-rewards" class="text-light">Earn Coins</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Legal</h4>
                     <ul class="list-unstyled">
-                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
-                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
+                        <li><a href="pricing" class="text-light">Pricing</a></li>
+                        <li><a href="terms" class="text-light">Terms</a></li>
+                        <li><a href="privacy" class="text-light">Privacy</a></li>
+                        <li><a href="refunds" class="text-light">Refunds</a></li>
                     </ul>
                 </div>
             </div>

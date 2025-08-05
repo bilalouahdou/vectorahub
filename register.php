@@ -13,7 +13,7 @@ $referralCode = $_GET['ref'] ?? '';
 
 // Check if user is already logged in
 if (isLoggedIn()) {
-    redirect('dashboard.php');
+            redirect('dashboard');
 }
 ?>
 <!DOCTYPE html>
@@ -244,7 +244,7 @@ if (isLoggedIn()) {
                         <!-- Login Link -->
                         <div class="text-center">
                             <span class="text-white-50">Already have an account? </span>
-                            <a href="login.php" class="link-accent">Sign in</a>
+                            <a href="login" class="link-accent">Sign in</a>
                         </div>
                     </form>
 
@@ -331,7 +331,7 @@ if (isLoggedIn()) {
                     
                     // Redirect to login after 2 seconds
                     setTimeout(() => {
-                        window.location.href = 'login.php';
+                        window.location.href = 'login';
                     }, 2000);
                 } else {
                     let errorMessage = result.error || 'Registration failed. Please try again.';
@@ -422,16 +422,17 @@ if (isLoggedIn()) {
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Support</h4>
                     <ul class="list-unstyled">
-                        <li><a href="/help/" class="text-light">Help Center</a></li>
-                        <li><a href="/contact/" class="text-light">Contact</a></li>
-                        <li><a href="/feedback/" class="text-light">Feedback</a></li>
+                        <li><a href="help" class="text-light">Help Center</a></li>
+                        <li><a href="contact" class="text-light">Contact</a></li>
+                        <li><a href="referral" class="text-light">Referral Program</a></li>
+                        <li><a href="ad-rewards" class="text-light">Earn Coins</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Legal</h4>
                     <ul class="list-unstyled">
-                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
-                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
+                        <li><a href="privacy" class="text-light">Privacy Policy</a></li>
+                        <li><a href="terms" class="text-light">Terms of Service</a></li>
                     </ul>
                 </div>
             </div>

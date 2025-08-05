@@ -31,18 +31,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($result['success']) {
             $userId = $result['user_id'];
 
-            // Handle referral tracking
+            // Handle referral tracking and rewards
             if (!empty($referralCode)) {
                 $referrerId = getReferrerIdFromCode($referralCode);
                 if ($referrerId) {
-                    recordReferralEvent($referrerId, 'signup', $userId, ['ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown']);
-                    // Store referral code in session to award later upon first purchase
-                    $_SESSION['referred_by_code'] = $referralCode;
+                    // Process referral rewards (50 coins each for referrer and new user)
+                    $rewardProcessed = processReferralRewards($referrerId, $userId);
+                    if ($rewardProcessed) {
+                        logActivity('REFERRAL_SUCCESS', "Referral successful: User $userId registered via referral from user $referrerId", $userId);
+                    }
                 }
             }
 
-            // Generate and store referral link for the new user
-            $newReferralLink = createReferralLinkForUser($userId);
+            // Generate and store referral link for the new user (permanent link)
+            $newReferralLink = getOrCreateReferralLink($userId);
             if ($newReferralLink) {
                 logActivity('REFERRAL_LINK_CREATED', "Referral link created for new user $userId: $newReferralLink", $userId);
             }

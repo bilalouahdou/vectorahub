@@ -1,4 +1,8 @@
-<?php require_once 'php/config.php'; ?>
+<?php 
+session_start();
+require_once 'php/config.php';
+require_once 'php/utils.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,12 +23,12 @@
             </a>
             <div class="navbar-nav ms-auto">
                 <a class="nav-link" href="/">Home</a>
-                <a class="nav-link" href="pricing.php">Pricing</a>
-                <a class="nav-link" href="api_documentation.php">API</a>
+                <a class="nav-link" href="pricing">Pricing</a>
+                <a class="nav-link" href="api-documentation">API</a>
                 <?php if (isLoggedIn()): ?>
-                    <a class="nav-link" href="dashboard.php">Dashboard</a>
+                    <a class="nav-link" href="dashboard">Dashboard</a>
                 <?php else: ?>
-                    <a class="nav-link" href="login.php">Login</a>
+                    <a class="nav-link" href="login">Login</a>
                 <?php endif; ?>
             </div>
         </div>
@@ -41,45 +45,77 @@
             <div class="col-lg-8 mx-auto">
                 <div class="card">
                     <div class="card-body">
+                        <div class="alert alert-info">
+                            <p class="mb-0"><strong>Service Operator:</strong> This service is operated by Bilal Ouahdou (sole proprietor), J.Almans 52/31 F, 10200 Tamesna, Morocco. Contact: Bilalouahdou@gmail.com, Tel: +212 655-296311.</p>
+                        </div>
+
                         <h2>1. Acceptance of Terms</h2>
-                        <p>By accessing and using VectraHub ("the Service"), you accept and agree to be bound by the terms and provision of this agreement.</p>
+                        <p>By accessing and using VectraHub ("the Service"), you accept and agree to be bound by the terms and provisions of this agreement.</p>
 
                         <h2>2. Description of Service</h2>
-                        <p>VectraHub provides AI-powered image vectorization services, converting raster images (JPG, PNG) to scalable vector formats (SVG). The service includes both web-based tools and API access.</p>
+                        <p>VectraHub is a SaaS platform that converts PNG/JPG images to SVG vector format. The service includes web application tools and API access for developers.</p>
 
                         <h2>3. User Accounts</h2>
-                        <p>To access certain features of the Service, you must create an account. You are responsible for maintaining the confidentiality of your account information and for all activities that occur under your account.</p>
-
-                        <h2>4. Acceptable Use</h2>
-                        <p>You agree to use the Service only for lawful purposes and in accordance with these Terms. You agree not to:</p>
+                        <p>To access premium features, you must create an account. You are responsible for:</p>
                         <ul>
-                            <li>Upload content that infringes on intellectual property rights</li>
-                            <li>Use the Service for any illegal or unauthorized purpose</li>
-                            <li>Attempt to gain unauthorized access to the Service</li>
-                            <li>Interfere with or disrupt the Service</li>
-                            <li>Upload malicious files or content</li>
+                            <li>Maintaining the confidentiality of your account credentials</li>
+                            <li>All activities that occur under your account</li>
+                            <li>Providing accurate and current information</li>
+                            <li>Promptly updating any changes to your information</li>
                         </ul>
 
-                        <h2>5. Subscription Plans and Billing</h2>
-                        <p>VectraHub offers various subscription plans with different features and usage limits. Billing occurs on a recurring basis according to your selected plan. You may cancel your subscription at any time.</p>
+                        <h2>4. Acceptable Use</h2>
+                        <p>You agree to use the Service only for lawful purposes. You agree not to:</p>
+                        <ul>
+                            <li>Upload content that infringes intellectual property rights</li>
+                            <li>Use the Service for illegal or unauthorized purposes</li>
+                            <li>Attempt unauthorized access to the Service or other users' accounts</li>
+                            <li>Interfere with, disrupt, or damage the Service</li>
+                            <li>Upload malicious files, viruses, or harmful content</li>
+                            <li>Abuse "unlimited" features beyond fair use limits</li>
+                            <li>Violate any applicable laws or regulations</li>
+                        </ul>
 
-                        <h2>6. Intellectual Property</h2>
-                        <p>You retain ownership of content you upload. By using the Service, you grant VectraHub a limited license to process your content for the purpose of providing the vectorization service.</p>
+                        <h2>5. Intellectual Property</h2>
+                        <p>You retain ownership of content you upload. By using the Service, you grant VectraHub a limited, non-exclusive license to process your content solely for providing vectorization services. We do not claim ownership of your uploaded content.</p>
 
-                        <h2>7. Privacy</h2>
-                        <p>Your privacy is important to us. Please review our Privacy Policy, which also governs your use of the Service.</p>
+                        <h2>6. Payments & Taxes</h2>
+                        <p>Payments are processed by Paddle as our Merchant of Record. Paddle handles all payment processing, tax collection, and compliance. By subscribing, you agree to Paddle's terms and privacy policy. All taxes and fees are included in the displayed prices where applicable.</p>
 
-                        <h2>8. Disclaimers</h2>
-                        <p>The Service is provided "as is" without warranties of any kind. VectraHub does not guarantee that the Service will be uninterrupted or error-free.</p>
+                        <h2>7. Plan Limits & Coins</h2>
+                        <p>Our service operates on a "coins" model where 1 coin = 1 vectorization (image conversion). Plan limits apply as follows:</p>
+                        <ul>
+                            <li><strong>Free Plan:</strong> Limited coins per month</li>
+                            <li><strong>Paid Plans:</strong> Monthly coin allowances as specified</li>
+                            <li><strong>"Unlimited" Features:</strong> Apply only to black & white vectorizations under fair use; rate limiting applies to prevent abuse</li>
+                            <li><strong>Coins:</strong> Have no cash value and are not withdrawable or transferable</li>
+                            <li><strong>Referral/Earn Coins:</strong> Promotional coins earned through referrals or activities have no monetary value</li>
+                        </ul>
 
-                        <h2>9. Limitation of Liability</h2>
-                        <p>VectraHub shall not be liable for any indirect, incidental, special, consequential, or punitive damages resulting from your use of the Service.</p>
+                        <h2>8. Refunds</h2>
+                        <p>Our refund policy is detailed in our <a href="refunds">Refund & Cancellation Policy</a>. Generally, refunds are available for first purchases within 7 days if minimal usage occurred.</p>
 
-                        <h2>10. Changes to Terms</h2>
-                        <p>We reserve the right to modify these terms at any time. We will notify users of any material changes via email or through the Service.</p>
+                        <h2>9. Termination</h2>
+                        <p>Either party may terminate this agreement at any time. We reserve the right to suspend or terminate accounts for violations of these terms. Upon termination, your access to the Service will cease, and any remaining coins will be forfeited.</p>
 
-                        <h2>11. Contact Information</h2>
-                        <p>If you have any questions about these Terms of Service, please contact us at support@vectrahub.online.</p>
+                        <h2>10. Disclaimers</h2>
+                        <p>The Service is provided "as is" without warranties of any kind, express or implied. We do not guarantee that the Service will be uninterrupted, error-free, or meet your specific requirements. We disclaim all warranties including merchantability and fitness for a particular purpose.</p>
+
+                        <h2>11. Limitation of Liability</h2>
+                        <p>To the maximum extent permitted by law, VectraHub and Bilal Ouahdou shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Service, even if advised of the possibility of such damages.</p>
+
+                        <h2>12. Governing Law</h2>
+                        <p>These Terms of Service are governed by and construed in accordance with the laws of Morocco. Any disputes arising under these terms shall be subject to the exclusive jurisdiction of Moroccan courts.</p>
+
+                        <h2>13. Changes to Terms</h2>
+                        <p>We reserve the right to modify these terms at any time. We will notify users of material changes via email or through the Service. Continued use after changes constitutes acceptance of the new terms.</p>
+
+                        <h2>14. Contact Information</h2>
+                        <p>For questions about these Terms of Service, contact:</p>
+                        <p><strong>Bilal Ouahdou</strong><br>
+                        J.Almans 52/31 F, 10200 Tamesna, Morocco<br>
+                        Email: Bilalouahdou@gmail.com<br>
+                        Phone: +212 655-296311</p>
 
                         <div class="text-center mt-5">
                             <a href="/" class="btn btn-accent">Back to Home</a>
@@ -102,16 +138,18 @@
                     <h6>Quick Links</h6>
                     <ul class="list-unstyled">
                         <li><a href="/" class="text-light">Home</a></li>
-                        <li><a href="pricing.php" class="text-light">Pricing</a></li>
-                        <li><a href="api_documentation.php" class="text-light">API</a></li>
-                        <li><a href="contact.php" class="text-light">Contact</a></li>
+                        <li><a href="pricing" class="text-light">Pricing</a></li>
+                        <li><a href="api_documentation" class="text-light">API</a></li>
+                        <li><a href="contact" class="text-light">Contact</a></li>
+                        <li><a href="referral" class="text-light">Referral Program</a></li>
+                        <li><a href="ad-rewards" class="text-light">Earn Coins</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4 mb-4">
                     <h6>Legal</h6>
                     <ul class="list-unstyled">
-                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
-                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
+                        <li><a href="privacy" class="text-light">Privacy Policy</a></li>
+                        <li><a href="terms" class="text-light">Terms of Service</a></li>
                     </ul>
                 </div>
             </div>

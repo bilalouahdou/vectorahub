@@ -24,11 +24,11 @@ primary_region = "cdg"
   processes = ["app"]
 
   [[http_service.checks]]
-    grace_period = "30s"    
-    interval = "20s"        
+    grace_period = "60s"    # Increased from 30s to 60s
+    interval = "30s"        # Increased from 20s to 30s
     method = "GET"
-    timeout = "10s"         
-    path = "/health.php"    # Now working without skip_db
+    timeout = "15s"         # Increased from 10s to 15s
+    path = "/health"        # Changed from /health.php to /health (clean URL)
     protocol = "http"
     tls_skip_verify = false
 

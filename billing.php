@@ -93,7 +93,7 @@ try {
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center">
                     <h1 class="display-5 fw-bold">Billing & Subscription</h1>
-                    <a href="dashboard.php" class="btn btn-outline-secondary">← Back to Dashboard</a>
+                    <a href="dashboard" class="btn btn-outline-secondary">← Back to Dashboard</a>
                 </div>
             </div>
         </div>
@@ -349,7 +349,7 @@ try {
                     
                     if (result.success) {
                         // Reload page to reflect changes
-                        window.location.href = 'billing.php?activation_success=true';
+                        window.location.href = 'billing?activation_success=true';
                     } else {
                         alert('Error: ' + (result.error || 'Failed to activate free plan'));
                     }
@@ -407,16 +407,17 @@ try {
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Support</h4>
                     <ul class="list-unstyled">
-                        <li><a href="/help/" class="text-light">Help Center</a></li>
-                        <li><a href="/contact/" class="text-light">Contact</a></li>
-                        <li><a href="/feedback/" class="text-light">Feedback</a></li>
+                        <li><a href="help" class="text-light">Help Center</a></li>
+                        <li><a href="contact" class="text-light">Contact</a></li>
+                        <li><a href="referral" class="text-light">Referral Program</a></li>
+                        <li><a href="ad-rewards" class="text-light">Earn Coins</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Legal</h4>
                     <ul class="list-unstyled">
-                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
-                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
+                        <li><a href="privacy" class="text-light">Privacy Policy</a></li>
+                        <li><a href="terms" class="text-light">Terms of Service</a></li>
                     </ul>
                 </div>
             </div>

@@ -1,42 +1,58 @@
 <?php
+session_start();
+require_once 'php/config.php';
 require_once 'php/utils.php';
 redirectIfNotAuth();
 
 $userId = $_SESSION['user_id'];
 $csrfToken = generateCsrfToken();
 
-// Fetch referral stats
-$referralStats = ['success' => false, 'error' => 'Not loaded'];
+// Get or create permanent referral link
+$referralLink = getOrCreateReferralLink($userId);
+
+// Get referral statistics from database
 try {
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, APP_URL . '/php/api/referral_stats.php');
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_COOKIE, session_name() . '=' . session_id()); // Pass session cookie
-    $response = curl_exec($ch);
-    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($response === false) {
-        throw new Exception("Failed to fetch referral stats: cURL error.");
-    }
-
-    $referralStats = json_decode($response, true);
-    if ($httpCode !== 200 || !($referralStats['success'] ?? false)) {
-        throw new Exception($referralStats['error'] ?? 'Unknown error fetching referral stats.');
-    }
+    $pdo = getDBConnection();
+    
+    // Get total signups via this user's referral
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM referral_events WHERE referrer_user_id = ? AND event_type = 'signup'");
+    $stmt->execute([$userId]);
+    $totalSignups = $stmt->fetchColumn();
+    
+    // Get total earned coins from referrals
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) FROM referral_rewards WHERE user_id = ? AND status = 'awarded'");
+    $stmt->execute([$userId]);
+    $earnedCoins = $stmt->fetchColumn();
+    
+    // Get recent referrals
+    $stmt = $pdo->prepare("
+        SELECT u.full_name, u.email, re.created_at
+        FROM referral_events re
+        JOIN users u ON re.referred_user_id = u.id
+        WHERE re.referrer_user_id = ? AND re.event_type = 'signup'
+        ORDER BY re.created_at DESC
+        LIMIT 5
+    ");
+    $stmt->execute([$userId]);
+    $recentSignups = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $stats = [
+        'total_signups' => (int)$totalSignups,
+        'earned_coins' => (float)$earnedCoins,
+        'total_clicks' => 0, // Not tracking clicks for now
+        'total_conversions' => (int)$totalSignups // Each signup is a conversion
+    ];
+    
 } catch (Exception $e) {
     error_log("Error fetching referral stats: " . $e->getMessage());
-    $referralStats['error'] = $e->getMessage();
+    $stats = [
+        'total_signups' => 0,
+        'earned_coins' => 0,
+        'total_clicks' => 0,
+        'total_conversions' => 0
+    ];
+    $recentSignups = [];
 }
-
-$referralLink = $referralStats['referral_link'] ?? 'Generating...';
-$stats = $referralStats['stats'] ?? [
-    'total_clicks' => 0,
-    'total_signups' => 0,
-    'total_conversions' => 0,
-    'earned_coins' => 0,
-];
-$recentSignups = $referralStats['recent_signups'] ?? [];
 
 ?>
 <!DOCTYPE html>
@@ -57,52 +73,38 @@ $recentSignups = $referralStats['recent_signups'] ?? [];
             <div class="col-12">
                 <div class="d-flex justify-content-between align-items-center">
                     <h1 class="display-5 fw-bold">Affiliate Program</h1>
-                    <a href="dashboard.php" class="btn btn-outline-secondary">← Back to Dashboard</a>
+                    <a href="dashboard" class="btn btn-outline-secondary">← Back to Dashboard</a>
                 </div>
             </div>
         </div>
 
-        <?php if (!($referralStats['success'] ?? false)): ?>
-            <div class="alert alert-danger" role="alert">
-                Failed to load referral data: <?php echo htmlspecialchars($referralStats['error']); ?>
-            </div>
-        <?php endif; ?>
+
 
         <!-- Referral Link Section -->
         <div class="admin-card mb-5">
-            <h2 class="mb-3">Your Referral Link</h2>
-            <p class="lead">Share this link with your friends and earn rewards when they sign up and make a purchase!</p>
+            <h2 class="mb-3">Your Permanent Referral Link</h2>
+            <p class="lead">Share this link with your friends! Both you and your friend will get 50 coins when they register using your link.</p>
             <div class="input-group mb-3">
                 <input type="text" id="referralLinkInput" class="form-control" value="<?php echo htmlspecialchars($referralLink); ?>" readonly>
                 <button class="btn btn-accent" type="button" id="copyReferralLinkBtn">Copy Link</button>
             </div>
-            <small class="text-muted">Reward: 50 bonus coins for every successful referral (first purchase).</small>
+            <small class="text-muted">✅ You get 50 coins + Your friend gets 50 coins = Win-Win!</small>
         </div>
 
         <!-- Referral Statistics -->
         <div class="row g-4 mb-5">
-            <div class="col-md-6 col-lg-3">
+            <div class="col-md-6">
                 <div class="admin-card text-center h-100">
-                    <h5 class="text-muted">Total Clicks</h5>
-                    <h2 class="display-4 fw-bold text-accent"><?php echo number_format($stats['total_clicks']); ?></h2>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-3">
-                <div class="admin-card text-center h-100">
-                    <h5 class="text-muted">Total Signups</h5>
+                    <h5 class="text-muted">Total Referrals</h5>
                     <h2 class="display-4 fw-bold text-accent"><?php echo number_format($stats['total_signups']); ?></h2>
+                    <p class="text-muted">People who signed up using your link</p>
                 </div>
             </div>
-            <div class="col-md-6 col-lg-3">
+            <div class="col-md-6">
                 <div class="admin-card text-center h-100">
-                    <h5 class="text-muted">Conversions</h5>
-                    <h2 class="display-4 fw-bold text-accent"><?php echo number_format($stats['total_conversions']); ?></h2>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-3">
-                <div class="admin-card text-center h-100">
-                    <h5 class="text-muted">Earned Coins</h5>
+                    <h5 class="text-muted">Total Earned Coins</h5>
                     <h2 class="display-4 fw-bold text-accent"><?php echo number_format($stats['earned_coins']); ?></h2>
+                    <p class="text-muted">Coins earned from referrals (50 per referral)</p>
                 </div>
             </div>
         </div>
@@ -110,7 +112,7 @@ $recentSignups = $referralStats['recent_signups'] ?? [];
         <!-- Recent Referrals -->
         <div class="row">
             <div class="col-12">
-                <h2 class="mb-4">Recent Signups</h2>
+                <h2 class="mb-4">Recent Referrals</h2>
                 <?php if (!empty($recentSignups)): ?>
                     <div class="table-responsive">
                         <table class="table table-striped">
@@ -119,6 +121,7 @@ $recentSignups = $referralStats['recent_signups'] ?? [];
                                     <th>Name</th>
                                     <th>Email</th>
                                     <th>Signed Up On</th>
+                                    <th>Reward</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -126,7 +129,8 @@ $recentSignups = $referralStats['recent_signups'] ?? [];
                                     <tr>
                                         <td><?php echo htmlspecialchars($signup['full_name']); ?></td>
                                         <td><?php echo htmlspecialchars($signup['email']); ?></td>
-                                        <td><?php echo htmlspecialchars($signup['created_at_formatted']); ?></td>
+                                        <td><?php echo formatDate($signup['created_at']); ?></td>
+                                        <td><span class="badge bg-success">+50 coins</span></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -134,7 +138,7 @@ $recentSignups = $referralStats['recent_signups'] ?? [];
                     </div>
                 <?php else: ?>
                     <div class="text-center py-5">
-                        <p class="text-muted">No recent signups yet. Share your link to get started!</p>
+                        <p class="text-muted">No referrals yet. Share your link to start earning!</p>
                     </div>
                 <?php endif; ?>
             </div>
@@ -198,16 +202,17 @@ $recentSignups = $referralStats['recent_signups'] ?? [];
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Support</h4>
                     <ul class="list-unstyled">
-                        <li><a href="/help/" class="text-light">Help Center</a></li>
-                        <li><a href="/contact/" class="text-light">Contact</a></li>
-                        <li><a href="/feedback/" class="text-light">Feedback</a></li>
+                        <li><a href="help" class="text-light">Help Center</a></li>
+                        <li><a href="contact" class="text-light">Contact</a></li>
+                        <li><a href="referral" class="text-light">Referral Program</a></li>
+                        <li><a href="ad-rewards" class="text-light">Earn Coins</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Legal</h4>
                     <ul class="list-unstyled">
-                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
-                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
+                        <li><a href="privacy" class="text-light">Privacy Policy</a></li>
+                        <li><a href="terms" class="text-light">Terms of Service</a></li>
                     </ul>
                 </div>
             </div>

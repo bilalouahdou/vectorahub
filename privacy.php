@@ -1,4 +1,8 @@
-<?php require_once 'php/config.php'; ?>
+<?php 
+session_start();
+require_once 'php/config.php';
+require_once 'php/utils.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,12 +23,12 @@
             </a>
             <div class="navbar-nav ms-auto">
                 <a class="nav-link" href="/">Home</a>
-                <a class="nav-link" href="pricing.php">Pricing</a>
-                <a class="nav-link" href="api_documentation.php">API</a>
+                <a class="nav-link" href="pricing">Pricing</a>
+                <a class="nav-link" href="api-documentation">API</a>
                 <?php if (isLoggedIn()): ?>
-                    <a class="nav-link" href="dashboard.php">Dashboard</a>
+                    <a class="nav-link" href="dashboard">Dashboard</a>
                 <?php else: ?>
-                    <a class="nav-link" href="login.php">Login</a>
+                    <a class="nav-link" href="login">Login</a>
                 <?php endif; ?>
             </div>
         </div>
@@ -42,88 +46,52 @@
                 <div class="card">
                     <div class="card-body">
                         <h2>1. Information We Collect</h2>
-                        <p>We collect information you provide directly to us, such as when you create an account, upload images, or contact us for support.</p>
+                        <p>We collect information you provide when you create an account, upload images, or contact us for support.</p>
                         
-                        <h3>Account Information</h3>
                         <ul>
-                            <li>Name and email address</li>
-                            <li>Password (encrypted)</li>
-                            <li>Account preferences and settings</li>
-                        </ul>
-
-                        <h3>Usage Information</h3>
-                        <ul>
-                            <li>Images you upload for vectorization</li>
-                            <li>API usage and requests</li>
-                            <li>Subscription and billing information</li>
-                        </ul>
-
-                        <h3>Technical Information</h3>
-                        <ul>
-                            <li>IP address and browser information</li>
-                            <li>Device and operating system details</li>
-                            <li>Usage patterns and analytics</li>
+                            <li><strong>Account Information:</strong> Name, email address, encrypted password</li>
+                            <li><strong>Usage Data:</strong> Images uploaded for vectorization, API usage, service preferences</li>
+                            <li><strong>Technical Data:</strong> IP address, browser information, device details for service functionality</li>
                         </ul>
 
                         <h2>2. How We Use Your Information</h2>
-                        <p>We use the information we collect to:</p>
+                        <p>We use collected information to:</p>
                         <ul>
-                            <li>Provide and improve our vectorization services</li>
-                            <li>Process your image uploads and generate vector outputs</li>
+                            <li>Provide image vectorization services</li>
+                            <li>Process uploads and generate vector outputs</li>
                             <li>Manage your account and subscription</li>
-                            <li>Send important service updates and notifications</li>
                             <li>Provide customer support</li>
-                            <li>Analyze usage patterns to improve our service</li>
+                            <li>Send service-related communications</li>
                         </ul>
 
                         <h2>3. Information Sharing</h2>
-                        <p>We do not sell, trade, or otherwise transfer your personal information to third parties, except:</p>
+                        <p>We do not sell your personal information. We may share information only:</p>
                         <ul>
-                            <li>With your explicit consent</li>
-                            <li>To comply with legal obligations</li>
-                            <li>To protect our rights and safety</li>
-                            <li>With service providers who assist in our operations (under strict confidentiality agreements)</li>
+                            <li>With your consent</li>
+                            <li>To comply with legal requirements</li>
+                            <li>With trusted service providers under confidentiality agreements</li>
                         </ul>
 
-                        <h2>4. Data Security</h2>
-                        <p>We implement appropriate security measures to protect your personal information:</p>
-                        <ul>
-                            <li>Encryption of sensitive data</li>
-                            <li>Secure data transmission (HTTPS)</li>
-                            <li>Regular security assessments</li>
-                            <li>Limited access to personal information</li>
-                        </ul>
+                        <h2>4. Payment Processing</h2>
+                        <p>All payment processing and checkout is handled by Paddle, our Merchant of Record. Paddle processes your payment information and handles tax compliance. We do not store your payment details. Paddle's privacy policy governs the collection and use of payment information.</p>
 
-                        <h2>5. Data Retention</h2>
-                        <p>We retain your information for as long as necessary to provide our services and comply with legal obligations. You may request deletion of your account and associated data at any time.</p>
+                        <h2>5. Data Security</h2>
+                        <p>We implement security measures including data encryption, secure transmission (HTTPS), and limited access controls to protect your information.</p>
 
-                        <h2>6. Your Rights</h2>
-                        <p>You have the right to:</p>
-                        <ul>
-                            <li>Access your personal information</li>
-                            <li>Correct inaccurate information</li>
-                            <li>Request deletion of your data</li>
-                            <li>Opt out of marketing communications</li>
-                            <li>Export your data</li>
-                        </ul>
+                        <h2>6. Data Retention</h2>
+                        <p>We retain your information as needed to provide services and comply with legal obligations. You may request account deletion at any time.</p>
 
-                        <h2>7. Cookies and Tracking</h2>
-                        <p>We use cookies and similar technologies to enhance your experience, analyze usage, and provide personalized content. You can control cookie settings through your browser preferences.</p>
+                        <h2>7. Your Rights</h2>
+                        <p>You may access, correct, or request deletion of your personal information. Contact us to exercise these rights.</p>
 
-                        <h2>8. Third-Party Services</h2>
-                        <p>Our service may integrate with third-party services (such as payment processors). These services have their own privacy policies, and we encourage you to review them.</p>
+                        <h2>8. Cookies</h2>
+                        <p>We use cookies to enhance functionality and analyze usage. You can control cookie settings in your browser.</p>
 
-                        <h2>9. Children's Privacy</h2>
-                        <p>Our service is not intended for children under 13. We do not knowingly collect personal information from children under 13.</p>
+                        <h2>9. Updates to This Policy</h2>
+                        <p>We may update this policy occasionally. We will notify you of material changes via email or service notifications.</p>
 
-                        <h2>10. International Data Transfers</h2>
-                        <p>Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place for such transfers.</p>
-
-                        <h2>11. Changes to This Policy</h2>
-                        <p>We may update this Privacy Policy from time to time. We will notify you of any material changes via email or through our service.</p>
-
-                        <h2>12. Contact Us</h2>
-                        <p>If you have questions about this Privacy Policy or our data practices, please contact us at privacy@vectrahub.online.</p>
+                        <h2>10. Contact Information</h2>
+                        <p>For privacy questions, contact: <strong>Bilalouahdou@gmail.com</strong></p>
 
                         <div class="text-center mt-5">
                             <a href="/" class="btn btn-accent">Back to Home</a>
@@ -146,16 +114,18 @@
                     <h6>Quick Links</h6>
                     <ul class="list-unstyled">
                         <li><a href="/" class="text-light">Home</a></li>
-                        <li><a href="pricing.php" class="text-light">Pricing</a></li>
-                        <li><a href="api_documentation.php" class="text-light">API</a></li>
-                        <li><a href="contact.php" class="text-light">Contact</a></li>
+                        <li><a href="pricing" class="text-light">Pricing</a></li>
+                        <li><a href="api_documentation" class="text-light">API</a></li>
+                        <li><a href="contact" class="text-light">Contact</a></li>
+                        <li><a href="referral" class="text-light">Referral Program</a></li>
+                        <li><a href="ad-rewards" class="text-light">Earn Coins</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4 mb-4">
                     <h6>Legal</h6>
                     <ul class="list-unstyled">
-                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
-                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
+                        <li><a href="privacy" class="text-light">Privacy Policy</a></li>
+                        <li><a href="terms" class="text-light">Terms of Service</a></li>
                     </ul>
                 </div>
             </div>

@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['user_name'] = $user['full_name'];
             $_SESSION['role'] = $user['role']; // Standardize to 'role'
             
-            jsonResponse(['success' => 'Login successful', 'redirect' => 'dashboard.php']);
+            jsonResponse(['success' => 'Login successful', 'redirect' => 'dashboard']);
         } else {
             jsonResponse(['error' => 'Invalid credentials'], 401);
         }

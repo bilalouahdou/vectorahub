@@ -501,7 +501,7 @@ if (!isset($_SESSION['csrf_token'])) {
                         <h5 class="text-accent"><?php echo htmlspecialchars($subscription['name'] ?? 'Free'); ?></h5>
                         <p class="mb-1"><strong><?php echo $coinsRemaining; ?></strong> coins left</p>
                         <?php if ($coinsRemaining <= 5): ?>
-                            <a href="pricing.php" class="btn btn-accent btn-sm">Upgrade</a>
+                            <a href="pricing" class="btn btn-accent btn-sm">Upgrade</a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -518,14 +518,19 @@ if (!isset($_SESSION['csrf_token'])) {
                         📤 New Upload
                     </a>
                 </li>
-                <li class="nav-item">
+                <!-- <li class="nav-item">
                     <a class="nav-link" href="#" data-section="history">
                         📁 History
                     </a>
+                </li> -->
+                <li class="nav-item">
+                    <a class="nav-link" href="pricing">
+                        💳 Pricing
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="pricing.php">
-                        💳 Pricing
+                    <a class="nav-link" href="referral">
+                        🎁 Referral Program
                     </a>
                 </li>
                 <?php if (isAdmin()): ?>
@@ -549,6 +554,9 @@ if (!isset($_SESSION['csrf_token'])) {
             <div id="overview-section" class="section">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h2>Welcome back, <?php echo htmlspecialchars($_SESSION['user_name'] ?? 'User'); ?>!</h2>
+                    <a href="ad-rewards" class="btn btn-accent">
+                        🎯 Earn Coins
+                    </a>
                 </div>
                 
                 <div class="row g-4 mb-4">
@@ -611,7 +619,7 @@ if (!isset($_SESSION['csrf_token'])) {
                                     <div class="upgrade-notice">
                                         <h5>🚀 Want to upload multiple images at once?</h5>
                                         <p class="mb-3">Upgrade to Ultimate plan to unlock bulk vectorization (up to 12 images)</p>
-                                        <a href="pricing.php" class="btn btn-light">Upgrade Now</a>
+                                        <a href="pricing" class="btn btn-light">Upgrade Now</a>
                                     </div>
                                 <?php endif; ?>
                                 
@@ -1054,16 +1062,19 @@ if (!isset($_SESSION['csrf_token'])) {
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Support</h4>
                     <ul class="list-unstyled">
-                        <li><a href="/help/" class="text-light">Help Center</a></li>
-                        <li><a href="/contact/" class="text-light">Contact</a></li>
-                        <li><a href="/feedback/" class="text-light">Feedback</a></li>
+                        <li><a href="help" class="text-light">Help Center</a></li>
+                        <li><a href="contact" class="text-light">Contact</a></li>
+                        <li><a href="referral" class="text-light">Referral Program</a></li>
+                        <li><a href="ad-rewards" class="text-light">Earn Coins</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Legal</h4>
                     <ul class="list-unstyled">
-                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
-                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
+                        <li><a href="pricing" class="text-light">Pricing</a></li>
+                        <li><a href="terms" class="text-light">Terms</a></li>
+                        <li><a href="privacy" class="text-light">Privacy</a></li>
+                        <li><a href="refunds" class="text-light">Refunds</a></li>
                     </ul>
                 </div>
             </div>

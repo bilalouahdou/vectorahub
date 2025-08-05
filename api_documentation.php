@@ -1,4 +1,8 @@
-<?php require_once 'php/config.php'; ?>
+<?php 
+session_start();
+require_once 'php/config.php';
+require_once 'php/utils.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,11 +25,11 @@
             </a>
             <div class="navbar-nav ms-auto">
                 <a class="nav-link" href="/">Home</a>
-                <a class="nav-link" href="pricing.php">Pricing</a>
+                <a class="nav-link" href="pricing">Pricing</a>
                 <?php if (isLoggedIn()): ?>
-                    <a class="nav-link" href="dashboard.php">Dashboard</a>
+                    <a class="nav-link" href="dashboard">Dashboard</a>
                 <?php else: ?>
-                    <a class="nav-link" href="login.php">Login</a>
+                    <a class="nav-link" href="login">Login</a>
                 <?php endif; ?>
             </div>
         </div>
@@ -341,16 +345,17 @@ else:
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Support</h4>
                     <ul class="list-unstyled">
-                        <li><a href="/help/" class="text-light">Help Center</a></li>
-                        <li><a href="/contact/" class="text-light">Contact</a></li>
-                        <li><a href="/feedback/" class="text-light">Feedback</a></li>
+                        <li><a href="help" class="text-light">Help Center</a></li>
+                        <li><a href="contact" class="text-light">Contact</a></li>
+                        <li><a href="referral" class="text-light">Referral Program</a></li>
+                        <li><a href="ad-rewards" class="text-light">Earn Coins</a></li>
                     </ul>
                 </div>
                 <div class="col-md-2">
                     <h4 class="h6 mb-3">Legal</h4>
                     <ul class="list-unstyled">
-                        <li><a href="privacy.php" class="text-light">Privacy Policy</a></li>
-                        <li><a href="terms.php" class="text-light">Terms of Service</a></li>
+                        <li><a href="privacy" class="text-light">Privacy Policy</a></li>
+                        <li><a href="terms" class="text-light">Terms of Service</a></li>
                     </ul>
                 </div>
             </div>

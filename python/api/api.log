@@ -1974,3 +1974,53 @@ OSError: Invalid chunk header
 2025-07-23 21:40:06,808 - werkzeug - INFO - 127.0.0.1 - - [23/Jul/2025 21:40:06] "POST /vectorize HTTP/1.1" 200 -
 2025-07-23 21:40:07,032 - app - INFO - Download request for: C:\wamp64\www\test\python\api\outputs\06ab70946b084028b01cef78efc8c0eb.svg
 2025-07-23 21:40:07,041 - werkzeug - INFO - 127.0.0.1 - - [23/Jul/2025 21:40:07] "GET /download/06ab70946b084028b01cef78efc8c0eb.svg HTTP/1.1" 200 -
+2025-08-06 11:14:03,747 - app - INFO - Directories created: C:\wamp64\www\test\python\api\uploads, C:\wamp64\www\test\python\api\outputs
+2025-08-06 11:14:04,629 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.11.105:5000
+2025-08-06 11:14:04,629 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-08-06 11:20:38,496 - app - INFO - Directories created: C:\wamp64\www\test\python\api\uploads, C:\wamp64\www\test\python\api\outputs
+2025-08-06 11:20:39,356 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.11.105:5000
+2025-08-06 11:20:39,357 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-08-06 11:21:08,346 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 11:21:08] "OPTIONS /health HTTP/1.1" 200 -
+2025-08-06 11:21:08,609 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 11:21:08] "GET /health HTTP/1.1" 200 -
+2025-08-06 11:42:55,195 - app - INFO - Directories created: C:\wamp64\www\test\python\api\uploads, C:\wamp64\www\test\python\api\outputs
+2025-08-06 11:42:56,053 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.11.105:5000
+2025-08-06 11:42:56,053 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-08-06 11:43:08,215 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 11:43:08] "OPTIONS /health HTTP/1.1" 200 -
+2025-08-06 11:43:08,464 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 11:43:08] "GET /health HTTP/1.1" 200 -
+2025-08-06 11:43:52,305 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 11:43:52] "OPTIONS /health HTTP/1.1" 200 -
+2025-08-06 11:43:52,620 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 11:43:52] "GET /health HTTP/1.1" 200 -
+2025-08-06 11:49:25,315 - app - INFO - Directories created: C:\wamp64\www\test\python\api\uploads, C:\wamp64\www\test\python\api\outputs
+2025-08-06 11:49:26,174 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.11.105:5000
+2025-08-06 11:49:26,175 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-08-06 11:49:55,905 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 11:49:55] "OPTIONS /health HTTP/1.1" 200 -
+2025-08-06 11:49:56,170 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 11:49:56] "GET /health HTTP/1.1" 200 -
+2025-08-06 11:54:10,429 - app - INFO - Directories created: C:\wamp64\www\test\python\api\uploads, C:\wamp64\www\test\python\api\outputs
+2025-08-06 11:54:11,283 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.11.105:5000
+2025-08-06 11:54:11,284 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-08-06 12:26:35,792 - app - INFO - Directories created: C:\wamp64\www\test\python\api\uploads, C:\wamp64\www\test\python\api\outputs
+2025-08-06 12:26:36,636 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.11.105:5000
+2025-08-06 12:26:36,636 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-08-06 12:26:40,965 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 12:26:40] "OPTIONS /health HTTP/1.1" 200 -
+2025-08-06 12:26:41,231 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 12:26:41] "GET /health HTTP/1.1" 200 -
+2025-08-06 12:30:22,601 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 12:30:22] "GET /health HTTP/1.1" 200 -
+2025-08-06 12:41:39,365 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 12:41:39] "GET /health HTTP/1.1" 200 -
+2025-08-06 12:44:23,904 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 12:44:23] "OPTIONS /health HTTP/1.1" 200 -
+2025-08-06 12:44:24,171 - werkzeug - INFO - 127.0.0.1 - - [06/Aug/2025 12:44:24] "GET /health HTTP/1.1" 200 -

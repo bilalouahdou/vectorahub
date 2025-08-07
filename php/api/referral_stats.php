@@ -1,6 +1,7 @@
 <?php
 require_once '../config.php';
 require_once '../utils.php';
+startSession(); // Start session before checking auth
 redirectIfNotAuth(); // Only authenticated users can view their stats
 
 header('Content-Type: application/json');

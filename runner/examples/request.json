@@ -1,0 +1,5 @@
+{
+  "input_url": "https://example.com/path/to/input.png",
+  "mode": "color",
+  "filename": "test_image.png"
+} 

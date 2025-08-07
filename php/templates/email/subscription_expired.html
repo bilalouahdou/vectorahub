@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscription Expired - VectraHub</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        .header {
+            background: linear-gradient(135deg, #fd7e14 0%, #e83e8c 100%);
+            padding: 40px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            color: #ffffff;
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .content h2 {
+            color: #333333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .content p {
+            color: #666666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .alert-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .alert-box h3 {
+            color: #856404;
+            margin-top: 0;
+        }
+        .alert-box p {
+            color: #856404;
+            margin-bottom: 0;
+        }
+        .renew-button {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: #ffffff !important;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .features-lost {
+            background-color: #f8d7da;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border-left: 4px solid #dc3545;
+        }
+        .features-lost h4 {
+            color: #721c24;
+            margin-top: 0;
+        }
+        .features-lost ul {
+            color: #721c24;
+            margin-bottom: 0;
+        }
+        .footer {
+            background-color: #333333;
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #fd7e14;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>Subscription Expired</h1>
+        </div>
+        
+        <div class="content">
+            <h2>Hi {{user_name}},</h2>
+            
+            <div class="alert-box">
+                <h3>⚠️ Your {{plan_name}} subscription has expired</h3>
+                <p>Your access to premium VectraHub features has been suspended.</p>
+            </div>
+            
+            <p>We hope you've enjoyed using VectraHub's advanced vectorization tools! Your subscription ended recently, and we wanted to let you know what this means for your account.</p>
+            
+            <div class="features-lost">
+                <h4>Features currently unavailable:</h4>
+                <ul>
+                    <li>High-resolution vector exports</li>
+                    <li>Batch processing</li>
+                    <li>Premium AI vectorization algorithms</li>
+                    <li>Priority processing queue</li>
+                    <li>Advanced customization options</li>
+                </ul>
+            </div>
+            
+            <p><strong>Good news:</strong> Your account and previous work are still safe! You can reactivate your subscription anytime to regain full access.</p>
+            
+            <div style="text-align: center;">
+                <a href="{{billing_url}}" class="renew-button">Renew Your Subscription</a>
+            </div>
+            
+            <p>If you have any questions about your subscription or need help choosing a plan, our support team is here to help.</p>
+            
+            <p>Thank you for being part of the VectraHub community!</p>
+            
+            <p>Best regards,<br>The VectraHub Team</p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2024 VectraHub. All rights reserved.</p>
+            <p>
+                <a href="{{app_url}}">Visit VectraHub</a> | 
+                <a href="{{billing_url}}">Manage Subscription</a> | 
+                <a href="{{app_url}}/support">Contact Support</a>
+            </p>
+            <p style="font-size: 12px; color: #999;">
+                Don't want these emails? <a href="{{app_url}}/unsubscribe" style="color: #999;">Unsubscribe</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1017,7 +1017,7 @@ if (!isset($_SESSION['csrf_token'])) {
             }
         });
     </script>
-    <script src="assets/js/upload.js"></script>
+    <script src="assets/js/upload.js?v=<?php echo time(); ?>"></script>
     <script src="assets/js/dashboard.js"></script>
     <!-- <script src="assets/js/diagnostics.js"></script> -->
     

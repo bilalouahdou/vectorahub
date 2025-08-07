@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        $pdo = getDBConnection();
+        $pdo = connectDB();
         $stmt = $pdo->prepare("SELECT * FROM subscription_plans WHERE id = ?");
         $stmt->execute([$planId]);
         $plan = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -32,26 +32,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         require_once '../vendor/autoload.php';
         \Stripe\Stripe::setApiKey(STRIPE_SECRET_KEY);
 
-        $checkout_session = \Stripe\Checkout\Session::create([
-            'line_items' => [[
-                'price_data' => [
-                    'currency' => 'usd',
-                    'product_data' => [
-                        'name' => $plan['name'],
-                        'description' => $plan['features'],
-                    ],
-                    'unit_amount' => $plan['price'] * 100, // Amount in cents
+        // Determine if this is a subscription or one-time payment
+        $isSubscription = !empty($plan['stripe_price_id']) && $plan['price'] > 0;
+        
+        if ($isSubscription) {
+            // Create subscription checkout session
+            $checkout_session = \Stripe\Checkout\Session::create([
+                'line_items' => [[
+                    'price' => $plan['stripe_price_id'],
+                    'quantity' => 1,
+                ]],
+                'mode' => 'subscription',
+                'success_url' => APP_URL . '/billing.php?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url' => APP_URL . '/billing.php?canceled=true',
+                'metadata' => [
+                    'user_id' => $userId,
+                    'plan_id' => $planId,
                 ],
-                'quantity' => 1,
-            ]],
-            'mode' => 'payment',
-            'success_url' => APP_URL . '/billing.php?session_id={CHECKOUT_SESSION_ID}',
-            'cancel_url' => APP_URL . '/billing.php?canceled=true',
-            'metadata' => [
-                'user_id' => $userId,
-                'plan_id' => $planId,
-            ],
-        ]);
+                'subscription_data' => [
+                    'metadata' => [
+                        'user_id' => $userId,
+                        'plan_id' => $planId,
+                    ],
+                ],
+            ]);
+        } else {
+            // Create one-time payment checkout session (for free plans or legacy plans)
+            $checkout_session = \Stripe\Checkout\Session::create([
+                'line_items' => [[
+                    'price_data' => [
+                        'currency' => 'usd',
+                        'product_data' => [
+                            'name' => $plan['name'],
+                            'description' => $plan['features'],
+                        ],
+                        'unit_amount' => $plan['price'] * 100, // Amount in cents
+                    ],
+                    'quantity' => 1,
+                ]],
+                'mode' => 'payment',
+                'success_url' => APP_URL . '/billing.php?session_id={CHECKOUT_SESSION_ID}',
+                'cancel_url' => APP_URL . '/billing.php?canceled=true',
+                'metadata' => [
+                    'user_id' => $userId,
+                    'plan_id' => $planId,
+                ],
+            ]);
+        }
 
         jsonResponse(['success' => true, 'session_id' => $checkout_session->id]);
 

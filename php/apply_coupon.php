@@ -1,5 +1,6 @@
 <?php
 require_once 'utils.php';
+startSession(); // Start session before checking auth
 redirectIfNotAuth();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

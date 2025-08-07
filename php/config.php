@@ -3,7 +3,7 @@
 // --- Application Settings ---
 define('APP_ENV', getenv('APP_ENV') ?: 'development'); // 'development', 'production'
 define('APP_NAME', getenv('APP_NAME') ?: 'VectraHub');
-define('APP_URL', getenv('APP_URL') ?: 'http://localhost');
+define('APP_URL', getenv('APP_URL') ?: 'https://vectrahub.online');
 
 // --- Database Configuration (Supabase PostgreSQL) ---
 // Prioritize DATABASE_URL if available (e.g., from Fly.io)
@@ -27,15 +27,21 @@ if ($databaseUrl) {
     define('DB_SSLMODE', getenv('DB_SSLMODE') ?: 'prefer'); // 'require' for production, 'prefer' for local
 }
 
+// --- Email Configuration (Resend) ---
+define('RESEND_API_KEY', getenv('RESEND_API_KEY') ?: 're_hzYtNgk1_HW2JkU65FMuKf1fcwf3TAVcd');
+
+// --- Cron Security ---
+define('CRON_SECRET_KEY', getenv('CRON_SECRET_KEY') ?: bin2hex(random_bytes(16)));
+
 // --- Supabase API Keys (for client-side if needed, or server-side interactions) ---
 define('SUPABASE_URL', getenv('SUPABASE_URL') ?: 'YOUR_SUPABASE_URL'); // e.g., https://xyz.supabase.co
 define('SUPABASE_ANON_KEY', getenv('SUPABASE_ANON_KEY') ?: 'YOUR_SUPABASE_ANON_KEY');
 define('SUPABASE_SERVICE_ROLE_KEY', getenv('SUPABASE_SERVICE_ROLE_KEY') ?: 'YOUR_SUPABASE_SERVICE_ROLE_KEY'); // Keep this secret!
 
 // --- Stripe API Keys ---
-define('STRIPE_PUBLISHABLE_KEY', getenv('STRIPE_PUBLISHABLE_KEY') ?: 'pk_test_YOUR_STRIPE_PUBLISHABLE_KEY');
-define('STRIPE_SECRET_KEY', getenv('STRIPE_SECRET_KEY') ?: 'sk_test_YOUR_STRIPE_SECRET_KEY');
-define('STRIPE_WEBHOOK_SECRET', getenv('STRIPE_WEBHOOK_SECRET') ?: 'whsec_YOUR_STRIPE_WEBHOOK_SECRET');
+define('STRIPE_PUBLISHABLE_KEY', getenv('STRIPE_PUBLISHABLE_KEY') ?: '');
+define('STRIPE_SECRET_KEY', getenv('STRIPE_SECRET_KEY') ?: '');
+define('STRIPE_WEBHOOK_SECRET', getenv('STRIPE_WEBHOOK_SECRET') ?: '');
 
 // --- File Upload Settings ---
 define('UPLOAD_MAX_SIZE', (int)(getenv('UPLOAD_MAX_SIZE') ?: 5 * 1024 * 1024)); // 5 MB

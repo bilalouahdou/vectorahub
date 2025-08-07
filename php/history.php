@@ -6,6 +6,7 @@ ini_set('log_errors', 1);
 require_once 'utils.php';
 require_once 'config.php'; // Ensure config is loaded for getDBConnection
 
+startSession(); // Start session before checking auth
 redirectIfNotAuth();
 
 header('Content-Type: application/json');

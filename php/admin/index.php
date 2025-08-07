@@ -9,7 +9,7 @@ if (session_status() == PHP_SESSION_NONE) {
 
 // Check if user is logged in and is admin
 if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php');
+    header('Location: /login');
     exit;
 }
 
@@ -19,7 +19,7 @@ $stmt->execute([$_SESSION['user_id']]);
 $user = $stmt->fetch();
 
 if (!$user || $user['role'] !== 'admin') {
-    header('Location: ../dashboard.php');
+    header('Location: /dashboard');
     exit;
 }
 
@@ -305,11 +305,11 @@ $userInfo = $stmt->fetch();
                     </nav>
                     
                     <div class="mt-auto pt-4">
-                        <a href="../../dashboard.php" class="nav-link">
+                        <a href="/dashboard" class="nav-link">
                             <i class="fas fa-arrow-left"></i> Back to Dashboard
                         </a>
-                                        <a href="../auth/logout.php" class="nav-link text-warning">
-                    <i class="fas fa-sign-out-alt"></i> Logout
+                        <a href="/logout" class="nav-link text-warning">
+                            <i class="fas fa-sign-out-alt"></i> Logout
                         </a>
                     </div>
                 </div>

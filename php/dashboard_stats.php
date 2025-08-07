@@ -1,5 +1,6 @@
 <?php
 require_once 'utils.php';
+startSession(); // Start session before checking auth
 redirectIfNotAuth();
 
 header('Content-Type: application/json');

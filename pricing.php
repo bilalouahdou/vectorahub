@@ -2,12 +2,23 @@
 require_once 'php/config.php';
 require_once 'php/utils.php';
 
-// Fetch plans from database
+// Fetch plans from database - filter out yearly-only plans 
 try {
     $pdo = connectDB();
     $stmt = $pdo->prepare("SELECT * FROM subscription_plans ORDER BY price ASC");
     $stmt->execute();
-    $plans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $allPlans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Filter out yearly-only plans (those with "- Yearly" in the name)
+    // We only want to show base plans (monthly plans) and combine yearly pricing within each card
+    $plans = [];
+    foreach ($allPlans as $plan) {
+        // Skip plans that are specifically yearly plans (with "- Yearly" in name)
+        if (strpos($plan['name'], '- Yearly') !== false) {
+            continue;
+        }
+        $plans[] = $plan;
+    }
 } catch (Exception $e) {
     error_log("Failed to load plans: " . $e->getMessage());
     $plans = [];
@@ -205,7 +216,7 @@ function calculateYearlySavings($monthlyPrice) {
                                                 Current Plan
                                             </button>
                                         <?php else: ?>
-                                            <a href="billing.php?plan_id=<?php echo $plan['id']; ?>&type=monthly" 
+                                            <a href="billing?plan_id=<?php echo $plan['id']; ?>&type=monthly" 
                                                class="btn btn-outline-primary btn-sm w-100 plan-select-btn">
                                                 Select Monthly
                                             </a>
@@ -232,7 +243,7 @@ function calculateYearlySavings($monthlyPrice) {
                                                     Current Plan
                                                 </button>
                                             <?php else: ?>
-                                                <a href="billing.php?plan_id=<?php echo $plan['id']; ?>&type=yearly" 
+                                                <a href="billing?plan_id=<?php echo $plan['id']; ?>&type=yearly" 
                                                    class="btn <?php echo ($plan['name'] == $recommendedPlanName) ? 'btn-accent' : 'btn-primary'; ?> btn-sm w-100 plan-select-btn">
                                                     Select Yearly
                                                 </a>
@@ -247,7 +258,7 @@ function calculateYearlySavings($monthlyPrice) {
                                                         Current Plan
                                                     </button>
                                                 <?php else: ?>
-                                                    <a href="billing.php?plan_id=<?php echo $plan['id']; ?>&type=monthly" 
+                                                    <a href="billing?plan_id=<?php echo $plan['id']; ?>&type=monthly" 
                                                        class="btn btn-success btn-sm w-100 plan-select-btn">
                                                         Get Started Free
                                                     </a>

@@ -1,7 +1,15 @@
 <?php
 require_once 'php/utils.php';
 require_once 'php/config.php'; // Ensure config is loaded for Stripe keys
+
+// Ensure session is started first
+startSession();
 redirectIfNotAuth();
+
+// Generate CSRF token if not exists
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = generateCsrfToken();
+}
 
 $userId = $_SESSION['user_id'];
 $coinsRemaining = getUserCoinsRemaining($userId);
@@ -45,15 +53,48 @@ if (isset($_GET['session_id'])) {
 $activationSuccess = isset($_GET['activation_success']);
 
 
-// Get available plans
+// Get available plans, grouped by billing period
 try {
     $pdo = connectDB();
-    $stmt = $pdo->prepare("SELECT * FROM subscription_plans ORDER BY price ASC");
+    $stmt = $pdo->prepare("SELECT * FROM subscription_plans ORDER BY name, billing_period ASC");
     $stmt->execute();
-    $plans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $allPlans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Group plans by base name, but exclude yearly-only plans from main display
+    $planGroups = [];
+    foreach ($allPlans as $plan) {
+        $baseName = preg_replace('/ - (Monthly|Yearly)$/', '', $plan['name']);
+        
+        // Skip yearly-only plan names (they should be combined with monthly)
+        if (strpos($plan['name'], '- Yearly') !== false && strpos($plan['name'], 'VectraHub') === 0) {
+            $baseName = str_replace(' - Yearly', '', $plan['name']);
+        }
+        
+        if (!isset($planGroups[$baseName])) {
+            $planGroups[$baseName] = [];
+        }
+        $planGroups[$baseName][] = $plan;
+    }
+    
+    // Remove groups that only have yearly plans (they should be combined with monthly)
+    $finalPlanGroups = [];
+    foreach ($planGroups as $baseName => $plans) {
+        // Only include if we have a monthly plan or it's the free plan
+        $hasMonthly = false;
+        foreach ($plans as $plan) {
+            if ($plan['billing_period'] === 'monthly' || $plan['name'] === 'Free') {
+                $hasMonthly = true;
+                break;
+            }
+        }
+        if ($hasMonthly) {
+            $finalPlanGroups[$baseName] = $plans;
+        }
+    }
+    $planGroups = $finalPlanGroups;
 } catch (Exception $e) {
     error_log("Failed to load plans: " . $e->getMessage());
-    $plans = [];
+    $planGroups = [];
 }
 
 // Get purchase history
@@ -85,8 +126,15 @@ try {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="assets/css/custom.css" rel="stylesheet">
     <script src="https://js.stripe.com/v3/"></script>
+    <script>
+        // Make Stripe publishable key available to JavaScript
+        const STRIPE_PUBLISHABLE_KEY = '<?php echo STRIPE_PUBLISHABLE_KEY; ?>';
+    </script>
 </head>
 <body>
+    <!-- Hidden CSRF token for JavaScript -->
+    <input type="hidden" id="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token'] ?? ''); ?>">
+    
     <div class="container py-5">
         <!-- Header -->
         <div class="row mb-4">
@@ -157,56 +205,124 @@ try {
             <div class="col-12">
                 <h2 class="mb-4">Available Plans</h2>
             </div>
-            <?php foreach ($plans as $plan): ?>
+            
+            <?php foreach ($planGroups as $baseName => $plans): ?>
+                <?php 
+                $monthlyPlan = null;
+                $yearlyPlan = null;
+                foreach ($plans as $plan) {
+                    if ($plan['billing_period'] === 'monthly') $monthlyPlan = $plan;
+                    if ($plan['billing_period'] === 'yearly') $yearlyPlan = $plan;
+                }
+                ?>
+                
                 <div class="col-lg-4 col-md-6 mb-4">
                     <div class="feature-card h-100 text-center position-relative">
-                        <?php if ($plan['name'] === 'Ultimate'): ?>
+                        <?php if ($baseName === 'VectraHub Pro'): ?>
                             <div class="position-absolute top-0 start-50 translate-middle">
                                 <span class="badge bg-accent text-dark">Most Popular</span>
                             </div>
-                        <?php elseif ($plan['name'] === 'Black Unlimited Pack'): ?>
+                        <?php elseif ($baseName === 'VectraHub Black Pack'): ?>
                             <div class="position-absolute top-0 start-50 translate-middle">
-                                <span class="badge bg-dark text-light">New!</span>
+                                <span class="badge bg-dark text-light">Best Value</span>
                             </div>
                         <?php endif; ?>
                         
-                        <h4 class="mt-3"><?php echo htmlspecialchars($plan['name']); ?></h4>
-                        <div class="my-3">
-                            <h2 class="text-accent"><?php echo formatCurrency($plan['price']); ?></h2>
-                            <p class="text-muted">per month</p>
-                        </div>
+                        <h4 class="mt-3"><?php echo htmlspecialchars($baseName); ?></h4>
+                        <p class="text-muted small mb-3">Professional vectorization solution</p>
                         
-                        <div class="mb-4">
-                            <h5><?php echo number_format($plan['coin_limit']); ?> Coins</h5>
-                            <?php if ($plan['unlimited_black_images']): ?>
-                                <p class="small text-success fw-bold mb-1">Unlimited Black Images</p>
-                            <?php endif; ?>
-                            <p class="small text-muted"><?php echo htmlspecialchars($plan['features'] ?? ''); ?></p>
-                        </div>
+                        <!-- Coins Display -->
+                        <?php if ($monthlyPlan): ?>
+                            <div class="mb-3">
+                                <h5 class="text-accent"><?php echo number_format($monthlyPlan['coin_limit']); ?> Coins</h5>
+                                <p class="small text-muted mb-0">per month</p>
+                            </div>
+                        <?php endif; ?>
                         
-                        <div class="mt-auto">
-                            <?php if ($plan['price'] > 0): ?>
-                                <button class="btn btn-accent w-100 buy-now-btn" 
-                                        data-plan-id="<?php echo $plan['id']; ?>"
-                                        data-plan-name="<?php echo htmlspecialchars($plan['name']); ?>"
-                                        data-plan-price="<?php echo $plan['price']; ?>">
-                                    <span class="btn-text">Buy Now</span>
+                        <!-- Monthly Option -->
+                        <?php if ($monthlyPlan && $monthlyPlan['price'] > 0): ?>
+                            <div class="pricing-option mb-3 p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-bold">Monthly</span>
+                                </div>
+                                <div class="mb-2">
+                                    <span class="h5 mb-0"><?php echo formatCurrency($monthlyPlan['price']); ?></span>
+                                    <span class="text-muted">/month</span>
+                                </div>
+                                <button class="btn btn-outline-primary btn-sm w-100 buy-now-btn" 
+                                        data-plan-id="<?php echo $monthlyPlan['id']; ?>"
+                                        data-plan-name="<?php echo htmlspecialchars($monthlyPlan['name']); ?>"
+                                        data-plan-price="<?php echo $monthlyPlan['price']; ?>">
+                                    <span class="btn-text">Select Monthly</span>
                                     <span class="spinner-border spinner-border-sm d-none" role="status"></span>
                                 </button>
-                            <?php else: // This is the Free plan ?>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <!-- Yearly Option -->
+                        <?php if ($yearlyPlan): ?>
+                            <div class="pricing-option mb-3 p-3 border rounded position-relative bg-light">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="fw-bold">Yearly</span>
+                                    <span class="badge bg-success">Save 20%</span>
+                                </div>
+                                <div class="mb-2">
+                                    <span class="h5 mb-0"><?php echo formatCurrency($yearlyPlan['price']); ?></span>
+                                    <span class="text-muted">/year</span>
+                                </div>
+                                <button class="btn btn-primary btn-sm w-100 buy-now-btn" 
+                                        data-plan-id="<?php echo $yearlyPlan['id']; ?>"
+                                        data-plan-name="<?php echo htmlspecialchars($yearlyPlan['name']); ?>"
+                                        data-plan-price="<?php echo $yearlyPlan['price']; ?>">
+                                    <span class="btn-text">Select Yearly</span>
+                                    <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                                </button>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <!-- Free Plan Special Case -->
+                        <?php if ($baseName === 'Free'): ?>
+                            <div class="pricing-option mb-3 p-3 border rounded">
+                                <div class="mb-2">
+                                    <span class="h5 mb-0">$0.00</span>
+                                    <span class="text-muted">/month</span>
+                                </div>
+                                <div class="mb-3">
+                                    <h6><?php echo number_format($monthlyPlan['coin_limit']); ?> Coins/month</h6>
+                                </div>
                                 <?php if ($currentSubscription['name'] === 'Free'): ?>
                                     <button class="btn btn-outline-secondary w-100" disabled>
                                         Current Plan
                                     </button>
                                 <?php else: ?>
-                                    <button class="btn btn-primary w-100 activate-free-plan-btn" 
-                                            data-plan-id="<?php echo $plan['id']; ?>">
+                                    <button class="btn btn-success w-100 activate-free-plan-btn" 
+                                            data-plan-id="<?php echo $monthlyPlan['id']; ?>">
                                         <span class="btn-text">Activate Free Plan</span>
                                         <span class="spinner-border spinner-border-sm d-none" role="status"></span>
                                     </button>
                                 <?php endif; ?>
-                            <?php endif; ?>
-                        </div>
+                            </div>
+                        <?php endif; ?>
+                        
+                        <!-- Features List -->
+                        <?php if ($monthlyPlan): ?>
+                            <div class="features-list text-start small">
+                                <?php 
+                                $features = explode(';', $monthlyPlan['features']);
+                                foreach($features as $feature): 
+                                    $feature = trim($feature);
+                                    if (!empty($feature)):
+                                ?>
+                                    <div class="d-flex align-items-center mb-1">
+                                        <i class="text-success me-2">✓</i>
+                                        <span><?php echo htmlspecialchars($feature); ?></span>
+                                    </div>
+                                <?php 
+                                    endif;
+                                endforeach; 
+                                ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -259,9 +375,24 @@ try {
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Initialize Stripe
-        const stripe = Stripe('<?php echo STRIPE_PUBLISHABLE_KEY; ?>');
-        const csrfToken = '<?php echo $_SESSION['csrf_token']; ?>';
+        // Wait for both DOM and Stripe.js to load
+        function initializeStripe() {
+            if (typeof Stripe === 'undefined') {
+                console.error('Stripe.js failed to load');
+                alert('Payment system unavailable. Please refresh the page and try again.');
+                return;
+            }
+            
+            // Initialize Stripe
+            const stripe = Stripe('<?php echo STRIPE_PUBLISHABLE_KEY; ?>');
+            const csrfToken = '<?php echo $_SESSION['csrf_token'] ?? ''; ?>';
+            
+            // Debug info
+            console.log('Stripe initialized:', stripe);
+            console.log('CSRF Token:', csrfToken);
+            console.log('Publishable Key:', '<?php echo STRIPE_PUBLISHABLE_KEY; ?>');
+        
+        // No longer needed - both monthly and yearly options are shown in each card
         
         // Handle buy now buttons
         document.querySelectorAll('.buy-now-btn').forEach(button => {
@@ -281,7 +412,7 @@ try {
                 
                 try {
                     // Create checkout session
-                    const response = await fetch('php/create_checkout_session.php', {
+                    const response = await fetch('/php/create_checkout_final.php', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
@@ -294,8 +425,10 @@ try {
                     
                     const result = await response.json();
                     
-                    if (result.session_id) {
-                        // Redirect to Stripe Checkout
+                    console.log('Checkout response:', result);
+                    
+                    if (result.session_id && result.session_id.startsWith('cs_')) {
+                        // Real Stripe session - redirect to checkout
                         const { error } = await stripe.redirectToCheckout({
                             sessionId: result.session_id
                         });
@@ -304,12 +437,23 @@ try {
                             console.error('Stripe error:', error);
                             alert('Payment failed: ' + error.message);
                         }
+                    } else if (result.success) {
+                        // Test response - show debug info
+                        alert('Test successful! Check console for details.');
+                        console.log('Debug info:', result.debug);
                     } else {
                         alert('Error: ' + (result.error || 'Failed to create checkout session'));
+                        if (result.debug) {
+                            console.log('Debug info:', result.debug);
+                        }
                     }
                 } catch (error) {
-                    console.error('Error:', error);
-                    alert('Network error. Please try again.');
+                    console.error('Checkout Error Details:', {
+                        error: error,
+                        message: error.message,
+                        stack: error.stack
+                    });
+                    alert('Network error. Please check console for details. Error: ' + error.message);
                 } finally {
                     // Reset button state
                     btnText.textContent = originalText;
@@ -363,6 +507,30 @@ try {
                     this.disabled = false;
                 }
             });
+        });
+        
+        }
+        
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Try to initialize immediately, then with delays if needed
+            let attempts = 0;
+            const maxAttempts = 10;
+            
+            function tryInitialize() {
+                attempts++;
+                if (typeof Stripe !== 'undefined') {
+                    initializeStripe();
+                } else if (attempts < maxAttempts) {
+                    console.log('Waiting for Stripe.js to load, attempt:', attempts);
+                    setTimeout(tryInitialize, 200);
+                } else {
+                    console.error('Stripe.js failed to load after multiple attempts');
+                    alert('Payment system unavailable. Please refresh the page and try again.');
+                }
+            }
+            
+            tryInitialize();
         });
     </script>
     

@@ -1139,11 +1139,34 @@ class ImageUploader {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 300000)
 
-      const response = await fetch("php/upload_handler.php", {
-        method: "POST",
-        body: formData,
-        signal: controller.signal,
-      })
+      // Always use GPU vectorization now
+      const imageUrl = formData.get('image_url');
+      
+      let response;
+      
+      if (imageUrl && imageUrl.trim()) {
+        // Use GPU vectorization for URL input
+        const gpuRequest = {
+          input_url: imageUrl.trim(),
+          mode: this.currentSingleMode || 'color'
+        };
+        
+        response = await fetch("php/api/gpu_vectorize.php", {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(gpuRequest),
+          signal: controller.signal,
+        });
+      } else {
+        // Use GPU vectorization for file uploads too
+        response = await fetch("php/api/upload_and_vectorize.php", {
+          method: "POST",
+          body: formData,
+          signal: controller.signal,
+        });
+      }
 
       clearTimeout(timeoutId)
 
@@ -1162,11 +1185,43 @@ class ImageUploader {
       }
 
       if (result.success) {
-        this.showVectorizedResult(result.svg_url)
-        this.showResult(result.svg_url, result.svg_filename)
-        // Display message from backend, especially if mode was switched
-        if (result.message) {
-          window.VectorizeUtils.showToast(result.message, "success")
+        // Handle different response formats
+        let svgUrl, svgFilename, message;
+        
+        if (result.data && result.data.output && result.data.output.local_path) {
+          // GPU vectorization response format
+          message = `✅ GPU Vectorization Complete! Job ID: ${result.data.job_id}`;
+          svgUrl = null; // Local path not accessible from web
+          svgFilename = "vectorized.svg";
+          
+          // Show success state instead of error
+          this.setProcessingState(false);
+          this.hideAllAreas();
+          
+          // Show success message
+          if (window.VectorizeUtils) {
+            window.VectorizeUtils.showToast(message, "success");
+            window.VectorizeUtils.showToast("⚡ Processed with GPU acceleration - check your dashboard for results!", "info");
+          }
+          
+          // Reset form for next upload
+          if (this.form) {
+            this.form.reset();
+          }
+          
+          return; // Exit early for GPU processing
+        } else {
+          // Traditional upload handler response format
+          svgUrl = result.svg_url;
+          svgFilename = result.svg_filename;
+          message = result.message;
+          
+          this.showVectorizedResult(svgUrl);
+          this.showResult(svgUrl, svgFilename);
+          
+          if (message) {
+            window.VectorizeUtils.showToast(message, "success");
+          }
         }
       } else {
         this.showError(result.error || "Upload failed")

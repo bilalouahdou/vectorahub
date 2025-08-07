@@ -48,7 +48,7 @@ class Dashboard {
 
   async loadOverviewStats() {
     try {
-      const response = await fetch("/php/dashboard_stats.php")
+      const response = await fetch("/php/dashboard_stats_clean.php")
       const stats = await response.json()
 
       document.getElementById("totalJobs").textContent = stats.total_jobs || 0

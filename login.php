@@ -227,6 +227,57 @@ if (isLoggedIn()) {
             }
         }
 
+        // Resend verification email function
+        async function resendVerification(email) {
+            const messageContainer = document.getElementById('messageContainer');
+            const resendBtn = event.target;
+            const originalText = resendBtn.innerHTML;
+            
+            // Show loading state
+            resendBtn.disabled = true;
+            resendBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Sending...';
+            
+            try {
+                const formData = new FormData();
+                formData.append('email', email);
+                formData.append('csrf_token', '<?php echo htmlspecialchars($csrfToken); ?>');
+                
+                const response = await fetch('php/auth/resend_verification.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    messageContainer.innerHTML = `
+                        <div class="alert alert-success mt-3">
+                            <i class="fas fa-check-circle me-2"></i>
+                            ${result.message}
+                        </div>
+                    `;
+                } else {
+                    messageContainer.innerHTML = `
+                        <div class="alert alert-danger mt-3">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            ${result.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                messageContainer.innerHTML = `
+                    <div class="alert alert-danger mt-3">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Network error. Please try again.
+                    </div>
+                `;
+            } finally {
+                // Reset button state
+                resendBtn.disabled = false;
+                resendBtn.innerHTML = originalText;
+            }
+        }
+
         // Form validation and submission
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -263,6 +314,18 @@ if (isLoggedIn()) {
                     setTimeout(() => {
                         window.location.href = result.redirect || 'dashboard';
                     }, 1000);
+                } else if (result.needs_verification) {
+                    // Show email verification required message with resend option
+                    messageContainer.innerHTML = `
+                        <div class="alert alert-warning mt-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Email Verification Required</strong><br>
+                            ${result.message}<br><br>
+                            <button type="button" class="btn btn-sm btn-outline-warning" onclick="resendVerification('${result.email}')">
+                                <i class="fas fa-paper-plane me-1"></i> Resend Verification Email
+                            </button>
+                        </div>
+                    `;
                 } else {
                     messageContainer.innerHTML = `
                         <div class="alert alert-danger mt-3">

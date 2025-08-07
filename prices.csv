@@ -1,0 +1,7 @@
+Price ID,Product ID,Product Name,Product Statement Descriptor,Product Tax Code,Description,Created (UTC),Amount,Currency,Interval,Interval Count,Usage Type,Aggregate Usage,Billing Scheme,Trial Period Days,Tax Behavior
+price_1RtAXyJYJk34NKovkjntSOr7,prod_SooAc4baLc7INs,VectraHub API Pro,,txcd_10000000,,2025-08-06 16:50,144.00,usd,year,1,licensed,,per_unit,,unspecified
+price_1RtAXiJYJk34NKovNS5cpLFf,prod_SooAc4baLc7INs,VectraHub API Pro,,txcd_10000000,,2025-08-06 16:50,15.00,usd,month,1,licensed,,per_unit,,unspecified
+price_1RtAXGJYJk34NKovhAPj2DS7,prod_Soo9TBQkWi9jMv,VectraHub Black Pack,,txcd_10000000,Black Yearly,2025-08-06 16:49,48.00,usd,year,1,licensed,,per_unit,,unspecified
+price_1RtAWsJYJk34NKovlISJ4eNo,prod_Soo9TBQkWi9jMv,VectraHub Black Pack,,txcd_10000000,,2025-08-06 16:49,5.00,usd,month,1,licensed,,per_unit,,unspecified
+price_1RtAVoJYJk34NKovE86WXQG6,prod_Soo6oDtW011zl2,VectraHub Pro,,txcd_10000000,Pro Yearly,2025-08-06 16:48,95.90,usd,year,1,licensed,,per_unit,,unspecified
+price_1RtAUjJYJk34NKov2o5zue7b,prod_Soo6oDtW011zl2,VectraHub Pro,,txcd_10000000,,2025-08-06 16:47,9.99,usd,month,1,licensed,,per_unit,,unspecified

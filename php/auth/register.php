@@ -2,6 +2,7 @@
 require_once '../config.php';
 require_once '../utils.php';
 require_once '../security/AuthenticationManager.php';
+require_once '../services/EmailService.php';
 
 header('Content-Type: application/json');
 
@@ -49,7 +50,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 logActivity('REFERRAL_LINK_CREATED', "Referral link created for new user $userId: $newReferralLink", $userId);
             }
 
-            jsonResponse(['success' => true, 'message' => 'Registration successful. You can now log in.', 'user_id' => $userId]);
+            // Generate email verification token
+            $verificationToken = bin2hex(random_bytes(32));
+            
+            // Store verification token in database
+            $stmt = $pdo->prepare("UPDATE users SET email_verification_token = ?, email_verified = FALSE WHERE id = ?");
+            $stmt->execute([$verificationToken, $userId]);
+            
+            // Send welcome email with verification
+            try {
+                $emailService = new EmailService();
+                $emailService->sendWelcomeEmail($email, $fullName, $verificationToken);
+                logActivity('WELCOME_EMAIL_SENT', "Welcome email sent to $email", $userId);
+            } catch (Exception $e) {
+                // Log email error but don't fail registration
+                error_log("Failed to send welcome email to $email: " . $e->getMessage());
+                logActivity('WELCOME_EMAIL_FAILED', "Failed to send welcome email to $email: " . $e->getMessage(), $userId);
+            }
+
+            jsonResponse(['success' => true, 'message' => 'Registration successful. Please check your email to verify your account.', 'user_id' => $userId]);
         } else {
             jsonResponse(['success' => false, 'error' => $result['error'] ?? 'Registration failed.', 'errors' => $result['errors'] ?? []], 400);
         }

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to VectraHub</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            text-align: center;
+        }
+        .header h1 {
+            color: #ffffff;
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .content h2 {
+            color: #333333;
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        .content p {
+            color: #666666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        .verify-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #ffffff !important;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .features {
+            background-color: #f8f9fa;
+            padding: 30px;
+            margin: 30px 0;
+            border-radius: 8px;
+        }
+        .features ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .features li {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            color: #555;
+        }
+        .features li:last-child {
+            border-bottom: none;
+        }
+        .features li:before {
+            content: "✓";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .footer {
+            background-color: #333333;
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+            font-size: 14px;
+        }
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1>Welcome to VectraHub</h1>
+        </div>
+        
+        <div class="content">
+            <h2>Hi {{user_name}}!</h2>
+            
+            <p>Welcome to VectraHub - the ultimate platform for vectorizing your images and logos with AI-powered precision!</p>
+            
+            <p>To get started and secure your account, please verify your email address by clicking the button below:</p>
+            
+            <div style="text-align: center;">
+                <a href="{{verification_url}}" class="verify-button">Verify Your Email</a>
+            </div>
+            
+            <div class="features">
+                <h3 style="margin-top: 0; color: #333;">What you can do with VectraHub:</h3>
+                <ul>
+                    <li>Convert images to high-quality SVG vectors</li>
+                    <li>AI-powered logo optimization for print and digital</li>
+                    <li>Batch processing for multiple files</li>
+                    <li>Professional-grade output for designers</li>
+                    <li>Fast cloud processing</li>
+                </ul>
+            </div>
+            
+            <p>If you didn't create this account, you can safely ignore this email.</p>
+            
+            <p>If you have any questions, feel free to reach out to our support team.</p>
+            
+            <p>Best regards,<br>The VectraHub Team</p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2024 VectraHub. All rights reserved.</p>
+            <p>
+                <a href="{{app_url}}">Visit VectraHub</a> | 
+                <a href="{{app_url}}/privacy">Privacy Policy</a> | 
+                <a href="{{app_url}}/terms">Terms of Service</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

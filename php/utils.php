@@ -497,4 +497,182 @@ function recordAdView($userId) {
         return ['success' => false, 'error' => 'Daily ad view limit reached.'];
     }
 }
+
+// --- Subscription Management Functions ---
+
+function processSubscriptionCreated($userId, $planId, $stripeSubscriptionId, $subscriptionData) {
+    try {
+        $pdo = connectDB();
+        $pdo->beginTransaction();
+
+        // Get plan details
+        $stmt = $pdo->prepare("SELECT * FROM subscription_plans WHERE id = ?");
+        $stmt->execute([$planId]);
+        $plan = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$plan) {
+            throw new Exception("Plan not found.");
+        }
+
+        // Calculate end date based on billing period
+        $endDate = $plan['billing_period'] === 'yearly' ? 
+            "CURRENT_DATE + INTERVAL '1 year'" : 
+            "CURRENT_DATE + INTERVAL '1 month'";
+
+        // Create or update user subscription
+        $stmt = $pdo->prepare("
+            INSERT INTO user_subscriptions (user_id, plan_id, start_date, end_date, active, stripe_subscription_id)
+            VALUES (?, ?, CURRENT_DATE, $endDate, TRUE, ?)
+            ON CONFLICT (user_id) DO UPDATE SET
+                plan_id = EXCLUDED.plan_id,
+                start_date = EXCLUDED.start_date,
+                end_date = EXCLUDED.end_date,
+                active = EXCLUDED.active,
+                stripe_subscription_id = EXCLUDED.stripe_subscription_id
+        ");
+        $stmt->execute([$userId, $planId, $stripeSubscriptionId]);
+
+        // Record the subscription creation
+        $stmt = $pdo->prepare("
+            INSERT INTO payments (user_id, plan_id, amount, currency, payment_gateway, transaction_id, paid_at)
+            VALUES (?, ?, ?, 'USD', 'Stripe', ?, CURRENT_TIMESTAMP)
+        ");
+        $stmt->execute([$userId, $planId, $plan['price'], $stripeSubscriptionId]);
+
+        // Log the activity
+        logActivity('SUBSCRIPTION_CREATED', "User $userId subscribed to plan '{$plan['name']}' for {$plan['price']} USD.", $userId);
+
+        $pdo->commit();
+        return true;
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        error_log("Subscription creation failed for user $userId, subscription $stripeSubscriptionId: " . $e->getMessage());
+        return false;
+    }
+}
+
+function processSubscriptionUpdated($stripeSubscriptionId, $subscriptionData) {
+    try {
+        $pdo = connectDB();
+        
+        // Update subscription status based on Stripe data
+        $status = $subscriptionData['status'] === 'active' ? TRUE : FALSE;
+        
+        $stmt = $pdo->prepare("
+            UPDATE user_subscriptions 
+            SET active = ?, updated_at = CURRENT_TIMESTAMP 
+            WHERE stripe_subscription_id = ?
+        ");
+        $stmt->execute([$status, $stripeSubscriptionId]);
+
+        logActivity('SUBSCRIPTION_UPDATED', "Subscription $stripeSubscriptionId status updated to {$subscriptionData['status']}.");
+        return true;
+    } catch (Exception $e) {
+        error_log("Subscription update failed for subscription $stripeSubscriptionId: " . $e->getMessage());
+        return false;
+    }
+}
+
+function processSubscriptionCanceled($stripeSubscriptionId) {
+    try {
+        $pdo = connectDB();
+        
+        // Mark subscription as inactive
+        $stmt = $pdo->prepare("
+            UPDATE user_subscriptions 
+            SET active = FALSE, updated_at = CURRENT_TIMESTAMP 
+            WHERE stripe_subscription_id = ?
+        ");
+        $stmt->execute([$stripeSubscriptionId]);
+
+        // Get user ID for logging
+        $stmt = $pdo->prepare("SELECT user_id FROM user_subscriptions WHERE stripe_subscription_id = ?");
+        $stmt->execute([$stripeSubscriptionId]);
+        $userId = $stmt->fetchColumn();
+
+        if ($userId) {
+            logActivity('SUBSCRIPTION_CANCELED', "User $userId canceled subscription $stripeSubscriptionId.", $userId);
+        }
+
+        return true;
+    } catch (Exception $e) {
+        error_log("Subscription cancellation failed for subscription $stripeSubscriptionId: " . $e->getMessage());
+        return false;
+    }
+}
+
+function processRecurringPayment($stripeSubscriptionId, $invoiceData) {
+    try {
+        $pdo = connectDB();
+        
+        // Get subscription details
+        $stmt = $pdo->prepare("SELECT * FROM user_subscriptions WHERE stripe_subscription_id = ?");
+        $stmt->execute([$stripeSubscriptionId]);
+        $subscription = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$subscription) {
+            throw new Exception("Subscription not found.");
+        }
+
+        // Get plan details
+        $stmt = $pdo->prepare("SELECT * FROM subscription_plans WHERE id = ?");
+        $stmt->execute([$subscription['plan_id']]);
+        $plan = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$plan) {
+            throw new Exception("Plan not found.");
+        }
+
+        // Extend subscription period
+        $extendPeriod = $plan['billing_period'] === 'yearly' ? 
+            "end_date + INTERVAL '1 year'" : 
+            "end_date + INTERVAL '1 month'";
+
+        $stmt = $pdo->prepare("
+            UPDATE user_subscriptions 
+            SET end_date = $extendPeriod, updated_at = CURRENT_TIMESTAMP 
+            WHERE stripe_subscription_id = ?
+        ");
+        $stmt->execute([$stripeSubscriptionId]);
+
+        // Record the payment
+        $amount = $invoiceData['amount_paid'] / 100; // Convert from cents
+        $stmt = $pdo->prepare("
+            INSERT INTO payments (user_id, plan_id, amount, currency, payment_gateway, transaction_id, paid_at)
+            VALUES (?, ?, ?, 'USD', 'Stripe', ?, CURRENT_TIMESTAMP)
+        ");
+        $stmt->execute([$subscription['user_id'], $subscription['plan_id'], $amount, $invoiceData['id']]);
+
+        logActivity('RECURRING_PAYMENT', "User {$subscription['user_id']} recurring payment of $amount USD processed for plan '{$plan['name']}'.", $subscription['user_id']);
+
+        return true;
+    } catch (Exception $e) {
+        error_log("Recurring payment processing failed for subscription $stripeSubscriptionId: " . $e->getMessage());
+        return false;
+    }
+}
+
+function processFailedPayment($stripeSubscriptionId, $invoiceData) {
+    try {
+        $pdo = connectDB();
+        
+        // Get subscription details
+        $stmt = $pdo->prepare("SELECT user_id FROM user_subscriptions WHERE stripe_subscription_id = ?");
+        $stmt->execute([$stripeSubscriptionId]);
+        $userId = $stmt->fetchColumn();
+
+        if ($userId) {
+            logActivity('PAYMENT_FAILED', "User $userId payment failed for subscription $stripeSubscriptionId. Amount: {$invoiceData['amount_due']} cents.", $userId);
+            
+            // You might want to send an email notification here
+            // notifyPaymentFailed($userId, $invoiceData);
+        }
+
+        return true;
+    } catch (Exception $e) {
+        error_log("Failed payment processing failed for subscription $stripeSubscriptionId: " . $e->getMessage());
+        return false;
+    }
+}
+
 ?>

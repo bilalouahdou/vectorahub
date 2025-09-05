@@ -43,4 +43,3 @@ try {
         'trace' => $e->getTraceAsString()
     ]);
 }
-?>

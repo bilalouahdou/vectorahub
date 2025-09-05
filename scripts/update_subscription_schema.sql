@@ -24,8 +24,8 @@ INSERT INTO subscription_plans (name, price, coin_limit, features, billing_perio
 ('Free', 0.00, 200, '200 free coins/month; basic vectorize only; no bulk; community support', 'monthly', NULL),
 
 -- VectraHub Black Pack
-('VectraHub Black Pack', 5.00, 1000, 'Unlimited single-image vectorize; Bulk vectorize; Priority queue; Email support', 'monthly', 'price_1RtAWsJYJk34NKovlISJ4eNo'),
-('VectraHub Black Pack - Yearly', 48.00, 12000, 'Unlimited single-image vectorize; Bulk vectorize; Priority queue; Email support; 20% yearly discount', 'yearly', 'price_1RtAXGJYJk34NKovhAPj2DS7'),
+('VectraHub Black Pack', 5.00, 1000, 'Unlimited single-image vectorize; Bulk vectorize; Priority queue; Email support', 'monthly', 'price_1RtT9cJYJk34NKovi3qBfwh4'),
+('VectraHub Black Pack - Yearly', 48.00, 12000, 'Unlimited single-image vectorize; Bulk vectorize; Priority queue; Email support; 20% yearly discount', 'yearly', 'price_1RtT9vJYJk34NKov8WwgiYGJ'),
 
 -- VectraHub Pro
 ('VectraHub Pro', 9.99, 2000, 'Everything in Black Pack + Advanced features; Premium support; HD output', 'monthly', 'price_1RtAUjJYJk34NKov2o5zue7b'),

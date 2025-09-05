@@ -43,8 +43,8 @@ try {
         ['Free', 0.00, 200, 'monthly', null, '200 free coins/month; basic vectorize only; no bulk; community support'],
         
         // VectraHub Black Pack
-        ['VectraHub Black Pack', 5.00, 1000, 'monthly', 'price_1RtAWsJYJk34NKovlISJ4eNo', 'Unlimited single-image vectorize; Bulk vectorize; Priority queue; Email support'],
-        ['VectraHub Black Pack - Yearly', 48.00, 12000, 'yearly', 'price_1RtAXGJYJk34NKovhAPj2DS7', 'Unlimited single-image vectorize; Bulk vectorize; Priority queue; Email support; 20% yearly discount'],
+        ['VectraHub Black Pack', 5.00, 1000, 'monthly', 'price_1RtT9cJYJk34NKovi3qBfwh4', 'Unlimited single-image vectorize; Bulk vectorize; Priority queue; Email support'],
+        ['VectraHub Black Pack - Yearly', 48.00, 12000, 'yearly', 'price_1RtT9vJYJk34NKov8WwgiYGJ', 'Unlimited single-image vectorize; Bulk vectorize; Priority queue; Email support; 20% yearly discount'],
         
         // VectraHub Pro
         ['VectraHub Pro', 9.99, 2000, 'monthly', 'price_1RtAUjJYJk34NKov2o5zue7b', 'Everything in Black Pack + Advanced features; Premium support; HD output'],

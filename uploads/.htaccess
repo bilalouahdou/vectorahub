@@ -1,0 +1,28 @@
+# Prevent PHP execution in uploads directory
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8
+php_flag engine off
+Options -ExecCGI
+
+# Deny access to executable files
+<FilesMatch "\.(php|phtml|phar|php[0-9]+)$">
+  Require all denied
+</FilesMatch>
+
+# Explicit MIME types (no wildcards)
+AddType image/png        .png
+AddType image/jpeg       .jpg .jpeg
+AddType image/webp       .webp
+AddType image/gif        .gif
+AddType image/svg+xml    .svg
+AddType image/x-icon     .ico
+
+# Allow only image files
+<FilesMatch "\.(png|jpg|jpeg|gif|webp|svg)$">
+    Order Allow,Deny
+    Allow from all
+</FilesMatch>
+
+# Set proper headers for images
+<FilesMatch "\.(png|jpg|jpeg|gif|webp|svg)$">
+    Header set Cache-Control "public, max-age=86400"
+</FilesMatch>

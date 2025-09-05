@@ -147,7 +147,7 @@ Options -Indexes
 # Prevent hotlinking of images
 <IfModule mod_rewrite.c>
     RewriteCond %{HTTP_REFERER} !^$
-    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?vectorahub\.online [NC]
+    RewriteCond %{HTTP_REFERER} !^https?://(www\.)?vectrahub\.online [NC]
     RewriteCond %{REQUEST_URI} \.(jpe?g|png|gif|svg|webp)$ [NC]
     RewriteRule \.(jpe?g|png|gif|svg|webp)$ - [F]
 </IfModule>

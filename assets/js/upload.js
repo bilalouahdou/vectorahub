@@ -3,6 +3,13 @@ function debugLog(message, data = null) {
   console.log(`[ImageUploader] ${message}`, data || "")
 }
 
+function getCsrfToken() {
+  const input = document.querySelector('input[name="csrf_token"]');
+  if (input && input.value) return input.value;
+  const meta = document.querySelector('meta[name="csrf-token"]');
+  return meta?.content || '';
+}
+
 class ImageUploader {
   constructor() {
     debugLog("🚀 Initializing ImageUploader...")
@@ -794,6 +801,24 @@ class ImageUploader {
       })
 
       if (!response.ok) {
+        // Handle runner-aware statuses gracefully
+        if (response.status === 503) {
+          this.setProcessingState(false)
+          this.hideAllAreas()
+          if (window.VectorizeUtils) {
+            window.VectorizeUtils.showToast('Local processor is offline. Click to retry.', 'warning')
+          } else {
+            alert('Runner offline. Try again.')
+          }
+          return
+        }
+        if (response.status === 502) {
+          this.setProcessingState(false)
+          if (window.VectorizeUtils) {
+            window.VectorizeUtils.showToast('Processing service error. Please retry shortly.', 'danger')
+          }
+          return
+        }
         throw new Error(`Server error: ${response.status} ${response.statusText}`)
       }
 
@@ -1148,7 +1173,8 @@ class ImageUploader {
         // Use GPU vectorization for URL input
         const gpuRequest = {
           input_url: imageUrl.trim(),
-          mode: this.currentSingleMode || 'color'
+          mode: this.currentSingleMode === 'black-white' ? 'bw' : 'color',
+          filename: imageUrl.split('/').pop() || 'image.png'
         };
         
         response = await fetch("php/api/gpu_vectorize.php", {
@@ -1160,10 +1186,74 @@ class ImageUploader {
           signal: controller.signal,
         });
       } else {
-        // Use GPU vectorization for file uploads too
-        response = await fetch("php/api/upload_and_vectorize.php", {
+        // For file uploads, first upload the file then call GPU vectorization
+        const file = this.fileInput.files[0];
+        if (!file) {
+          throw new Error("No file selected");
+        }
+
+        // Upload file first
+        const uploadFormData = new FormData();
+        uploadFormData.append('image', file);
+        uploadFormData.append('csrf_token', getCsrfToken());
+
+        const uploadResponse = await fetch("php/upload_handler.php", {
           method: "POST",
-          body: formData,
+          body: uploadFormData,
+          signal: controller.signal,
+        });
+
+        // Read response as text first
+        const raw = await uploadResponse.text();
+        debugLog("Upload response raw:", raw);
+
+        if (!uploadResponse.ok) {
+          let errorMsg = `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`;
+          try {
+            const errorJson = JSON.parse(raw);
+            if (errorJson.error) {
+              errorMsg += ` - ${errorJson.error}`;
+            }
+          } catch (e) {
+            // If JSON parse fails, use raw text
+            errorMsg += ` - ${raw}`;
+          }
+          throw new Error(errorMsg);
+        }
+
+        let uploadResult;
+        try {
+          uploadResult = JSON.parse(raw);
+        } catch (parseError) {
+          debugLog("❌ Upload JSON parse error:", parseError.message);
+          throw new Error("Upload failed: Invalid response from server");
+        }
+
+        if (!uploadResult.success || !uploadResult.file_url) {
+          throw new Error(uploadResult.error || "Upload failed - no file URL returned");
+        }
+
+        debugLog("✅ Upload successful:", uploadResult);
+
+        // Now call GPU vectorization with the uploaded file URL
+        const u = new URL(uploadResult.file_url);
+        if (u.hostname === location.hostname && u.protocol === 'http:') {
+          u.protocol = 'https:';
+        }
+        const gpuRequest = {
+          input_url: u.toString(),
+          mode: this.currentSingleMode === 'black-white' ? 'bw' : 'color',
+          filename: uploadResult.stored_filename || u.pathname.split('/').pop()
+        };
+        
+        debugLog("🔄 Calling GPU vectorization:", gpuRequest);
+        
+        response = await fetch("php/api/gpu_vectorize.php", {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(gpuRequest),
           signal: controller.signal,
         });
       }
@@ -1171,69 +1261,61 @@ class ImageUploader {
       clearTimeout(timeoutId)
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status} ${response.statusText}`)
-      }
-
-      const responseText = await response.text()
-      let result
-
-      try {
-        result = JSON.parse(responseText)
-      } catch (parseError) {
-        debugLog("❌ JSON parse error:", parseError.message)
-        throw new Error("Invalid response from server")
-      }
-
-      if (result.success) {
-        // Handle different response formats
-        let svgUrl, svgFilename, message;
-        
-        if (result.data && result.data.output && result.data.output.local_path) {
-          // GPU vectorization response format
-          message = `✅ GPU Vectorization Complete! Job ID: ${result.data.job_id}`;
-          svgUrl = null; // Local path not accessible from web
-          svgFilename = "vectorized.svg";
-          
-          // Show success state instead of error
-          this.setProcessingState(false);
-          this.hideAllAreas();
-          
-          // Show success message
-          if (window.VectorizeUtils) {
-            window.VectorizeUtils.showToast(message, "success");
-            window.VectorizeUtils.showToast("⚡ Processed with GPU acceleration - check your dashboard for results!", "info");
+        const responseText = await response.text();
+        let errorMsg = `Server error: ${response.status} ${response.statusText}`;
+        try {
+          const errorJson = JSON.parse(responseText);
+          if (errorJson.error) {
+            errorMsg = errorJson.error;
           }
-          
-          // Reset form for next upload
-          if (this.form) {
-            this.form.reset();
-          }
-          
-          return; // Exit early for GPU processing
-        } else {
-          // Traditional upload handler response format
-          svgUrl = result.svg_url;
-          svgFilename = result.svg_filename;
-          message = result.message;
-          
-          this.showVectorizedResult(svgUrl);
-          this.showResult(svgUrl, svgFilename);
-          
-          if (message) {
-            window.VectorizeUtils.showToast(message, "success");
-          }
+        } catch (e) {
+          errorMsg += ` - ${responseText}`;
         }
-      } else {
-        this.showError(result.error || "Upload failed")
+        throw new Error(errorMsg);
       }
+
+      // Parse gpu response
+      const gpuRaw = await response.text();
+      let gpuJson = {};
+      try { gpuJson = JSON.parse(gpuRaw); } catch (e) { throw new Error('Invalid response from server'); }
+      
+      if (!gpuJson.success) {
+        throw new Error(gpuJson.error || 'Vectorization failed');
+      }
+
+      // Handle immediate result with output_url
+      if (gpuJson.queued === false && gpuJson.data) {
+        const d = gpuJson.data || {};
+        const outputUrl = this.pickHttpUrl(d);
+        if (outputUrl) {
+          this.renderVectorized(outputUrl);
+          this.showResult(outputUrl, (d.output && d.output.filename) || 'vectorized.svg');
+          return;
+        }
+      }
+
+      // Handle queued job that needs polling
+      if (gpuJson.queued === true && gpuJson.job_id) {
+        console.log('[poll] starting for job:', gpuJson.job_id, 'status_url:', gpuJson.status_url || '(none)');
+        await pollJobAndRender(gpuJson.job_id, this, gpuJson.status_url || null);
+        return;
+      }
+
+      // Neither output_url nor queued+job_id - this should not happen with our backend
+      throw new Error('Invalid response: neither output_url nor queued job_id provided');
     } catch (error) {
+      // Always stop the spinner on any error
+      this.setProcessingState(false);
+      
       if (error.name === "AbortError") {
         this.showError("Processing timed out. Please try with a smaller image or try again.")
       } else {
-        this.showError("Network error: " + error.message)
+        this.showError(error.message)
       }
     }
   }
+
+
 
   showVectorizedResult(svgUrl) {
     if (!this.vectorizedImagePreview || !svgUrl) return
@@ -1300,22 +1382,56 @@ class ImageUploader {
   showResult(svgUrl, svgFilename) {
     this.hideAllAreas()
     this.setProcessingState(false)
-
     try {
-      const downloadLink = document.getElementById("downloadLink")
-      if (downloadLink) {
-        downloadLink.href = svgUrl
-        if (svgFilename) {
-          const downloadText = downloadLink.querySelector(".btn-text") || downloadLink
-          downloadText.textContent = `Download ${svgFilename}`
-        }
+      const link = document.getElementById("downloadLink");
+      if (link) {
+        link.removeAttribute('disabled');
+        link.classList.remove('disabled');
+        link.style.pointerEvents = 'auto';
+        link.href = svgUrl;
+        link.setAttribute('download', svgFilename || 'vectorized.svg');
+        link.target = '_blank';
+        link.rel = 'noopener';
+        const btnText = link.querySelector(".btn-text") || link;
+        btnText.textContent = `Download ${svgFilename || 'vectorized.svg'}`;
       }
+      this.renderVectorized(svgUrl);
 
       this.safeToggleClass(this.resultArea, "d-none", false)
-      this.updateCoinsCount()
+      // Record success + update balance
+      this.recordSuccessAndRefreshCoins(svgUrl, svgFilename || 'vectorized.svg').catch(()=>{})
     } catch (error) {
       debugLog("❌ Error showing result:", error.message)
     }
+  }
+
+  async recordSuccessAndRefreshCoins(outputUrl, filename) {
+    try {
+      const mode = this.currentSingleMode === 'black-white' ? 'bw' : 'color';
+      const res = await fetch('php/api/record_result.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          input_url: (this.currentImageData?.type === 'url') ? (this.urlInput?.value?.trim() || null) : null,
+          output_url: outputUrl,
+          mode,
+          bytes_in: null,
+          bytes_out: null,
+          job_id: null
+        })
+      });
+      const raw = await res.text(); let j={}; try{j=JSON.parse(raw)}catch{}
+      if (res.ok && j.success && typeof j.coins_remaining !== 'undefined') {
+        const coins = document.getElementById('coinsCount');
+        if (coins) coins.textContent = j.coins_remaining;
+      }
+    } catch(e) { debugLog('ℹ️ record_result failed:', e.message); }
+  }
+
+  // Helper: only accept http(s) URLs from various runner shapes
+  pickHttpUrl(d) {
+    const cands = [ d?.output_url, d?.output?.url, d?.url, d?.result_url ];
+    return cands.find(u => typeof u === 'string' && /^https?:\/\//i.test(u)) || null; // never local_path
   }
 
   showError(message) {
@@ -1364,6 +1480,87 @@ class ImageUploader {
       return null
     }
   }
+
+  renderVectorized(url) {
+    const box = this.vectorizedImagePreview || document.getElementById('vectorizedImagePreview');
+    if (!box) return;
+    box.innerHTML = '';
+    const img = new Image();
+    img.className = 'preview-image';
+    img.onload = () => box.replaceChildren(img);
+    img.onerror = () => {
+      const o = document.createElement('object');
+      o.type = 'image/svg+xml';
+      o.data = url;
+      o.onerror = () => { box.innerHTML = "<div class='preview-placeholder'>Failed to load vectorized image</div>"; };
+      box.replaceChildren(o);
+    };
+    img.src = url + (url.includes('?') ? '&' : '?') + 'v=' + Date.now();
+  }
+
+  showRunnerOnlyLocalPath(jobId, localPath) {
+    this.setProcessingState(false);
+    this.hideAllAreas();
+    const msg = `Result produced on the runner but not published over HTTP.
+Job: ${jobId || 'unknown'} 
+local_path: ${localPath}`;
+    if (window.VectorizeUtils) { 
+      window.VectorizeUtils.showToast(msg, 'warning'); 
+    }
+    const err = document.getElementById('errorMessage');
+    if (err) err.textContent = msg;
+    this.safeToggleClass(this.errorArea, "d-none", false);
+  }
+}
+
+// Poller function outside the class - receives uploader instance
+async function pollJobAndRender(jobId, uploader, statusUrl) {
+  const started   = Date.now();
+  const timeoutMs = 90_000;
+  const wait      = ms => new Promise(r => setTimeout(r, ms));
+  while (Date.now() - started < timeoutMs) {
+    const qs = statusUrl
+      ? `status_url=${encodeURIComponent(statusUrl)}`
+      : `id=${encodeURIComponent(jobId)}`;
+    let raw = ''; let j = {}; let code = 0; let dbg = '';
+    try {
+      const resp = await fetch(`php/api/job_status.php?${qs}`);
+      raw  = await resp.text();
+      try { j = JSON.parse(raw); } catch { j = {}; }
+      code = j.code || resp.status;
+      dbg  = j.debug_url || j.debug || '';
+      console.log('[poll] status raw:', raw);
+
+      if (resp.ok && j.success) {
+        const d   = j.data || {};
+        const url = (d.output_url && /^https?:\/\//i.test(d.output_url)) ? d.output_url : null;
+        const lp  = d.local_path || d.output?.local_path || null;
+        const st  = d.status || '';
+        if (url) { uploader?.renderVectorized?.(url); uploader?.showResult?.(url,'vectorized.svg'); return; }
+        if (lp && !url) { uploader?.showRunnerOnlyLocalPath?.(jobId, lp); return; }
+        if (/fail|error/i.test(st)) {
+          window.VectorizeUtils?.showToast?.(`Runner reported job ${st}`, 'warning');
+          uploader?.setProcessingState?.(false);
+          return;
+        }
+      } else {
+        // non-2xx from PHP or runner → stop, show why
+        const msg = j.error || `Runner status error: HTTP ${code}`;
+        window.VectorizeUtils?.showToast?.(`${msg}${dbg ? ' — ' + dbg : ''}`, 'warning');
+        uploader?.setProcessingState?.(false);
+        return;
+      }
+    } catch (e) {
+      // network / parse error → stop, show why
+      const msg = (e && e.message) ? e.message : 'Unknown polling error';
+      window.VectorizeUtils?.showToast?.(`Polling failed: ${msg}${dbg ? ' — ' + dbg : ''}`, 'warning');
+      uploader?.setProcessingState?.(false);
+      return;
+    }
+    await wait(2000);
+  }
+  window.VectorizeUtils?.showToast?.('Timed out waiting for GPU result', 'warning');
+  uploader?.setProcessingState?.(false);
 }
 
 // Safe initialization with multiple fallbacks

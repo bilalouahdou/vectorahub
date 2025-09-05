@@ -41,3 +41,7 @@ primary_region = "cdg"
   cpu_kind = "shared"
   cpus = 1
   memory_mb = 1024
+
+[mounts]
+  source = "uploads"
+  destination = "/var/www/html/uploads"

@@ -1,17 +1,50 @@
 RewriteEngine On
-# 1) Redirect any direct .php request to clean URL: /page.php -> /page (but exclude backend scripts)
+
+# Content Security Policy - Allow Stripe.js and other necessary resources
+<IfModule mod_headers.c>
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.stripe.com; frame-src https://js.stripe.com https://hooks.stripe.com;"
+</IfModule>
+
+# PHP Upload Limits (fallback for Apache + mod_php)
+# Note: This only works with mod_php, not with PHP-FPM
+php_value upload_max_filesize 5M
+php_value post_max_size 6M
+
+# Security headers
+Header always set X-Content-Type-Options nosniff
+Header always set X-Frame-Options DENY
+Header always set X-XSS-Protection "1; mode=block"
+
+# Prevent access to sensitive files
+<FilesMatch "\.(env|ini|log|sql|bak|backup)$">
+    Require all denied
+</FilesMatch>
+
+# Prevent directory listing
+Options -Indexes
+
+# 1) Redirect any direct .php request to clean URL: /page.php -> /page (but exclude backend scripts and API)
 RewriteCond %{THE_REQUEST} \s/+(.+?)\.php(\s|\?)
 RewriteCond %{REQUEST_URI} !^/php/
+RewriteCond %{REQUEST_URI} !^/api/
 RewriteRule ^ %1 [R=301,L]
 
-# 2) Serve existing files/folders normally (don't rewrite assets)
+# 2) API endpoints - serve PHP files directly (internal rewrite, no redirect)
+RewriteRule ^api/create_checkout\.php$ php/api/create_checkout.php [L]
+RewriteRule ^webhook/stripe/?$ php/webhook/stripe.php [L]
+RewriteRule ^webhook/test/?$ php/webhook/test.php [L]
+
+# 3) Serve existing files/folders normally (don't rewrite assets)
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# 3) Map extensionless URLs to their .php counterparts: /login -> /login.php
+# 4) Map extensionless URLs to their .php counterparts: /login -> /login.php
 RewriteCond %{REQUEST_FILENAME}.php -f
 RewriteRule ^(.+)$ $1.php [L,QSA]
 
-# 4) Default document
+# 5) API route rewrite for backward compatibility (removed - causes conflicts)
+# RewriteRule ^php/api/create_checkout\.php$ /api/create_checkout.php [L]
+
+# 5) Default document
 DirectoryIndex index.php 

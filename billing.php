@@ -125,10 +125,18 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&family=Open+Sans:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="assets/css/custom.css" rel="stylesheet">
+    
+    <!-- Stripe.js must load first, before any custom scripts -->
     <script src="https://js.stripe.com/v3/"></script>
+    
+    <!-- Inject Stripe publishable key with fail-fast validation -->
+    <?php $pk = STRIPE_PUBLISHABLE_KEY ?? ''; ?>
     <script>
-        // Make Stripe publishable key available to JavaScript
-        const STRIPE_PUBLISHABLE_KEY = '<?php echo STRIPE_PUBLISHABLE_KEY; ?>';
+        // Validate publishable key before making it available
+        if (!'<?= $pk ?>') {
+            console.error('Publishable key missing – Stripe will not initialise');
+        }
+        const STRIPE_PUBLISHABLE_KEY = "<?= htmlspecialchars($pk) ?>";
     </script>
 </head>
 <body>
@@ -374,165 +382,7 @@ try {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Wait for both DOM and Stripe.js to load
-        function initializeStripe() {
-            if (typeof Stripe === 'undefined') {
-                console.error('Stripe.js failed to load');
-                alert('Payment system unavailable. Please refresh the page and try again.');
-                return;
-            }
-            
-            // Initialize Stripe
-            const stripe = Stripe('<?php echo STRIPE_PUBLISHABLE_KEY; ?>');
-            const csrfToken = '<?php echo $_SESSION['csrf_token'] ?? ''; ?>';
-            
-            // Debug info
-            console.log('Stripe initialized:', stripe);
-            console.log('CSRF Token:', csrfToken);
-            console.log('Publishable Key:', '<?php echo STRIPE_PUBLISHABLE_KEY; ?>');
-        
-        // No longer needed - both monthly and yearly options are shown in each card
-        
-        // Handle buy now buttons
-        document.querySelectorAll('.buy-now-btn').forEach(button => {
-            button.addEventListener('click', async function() {
-                const planId = this.dataset.planId;
-                const planName = this.dataset.planName;
-                const planPrice = this.dataset.planPrice;
-                
-                // Show loading state
-                const btnText = this.querySelector('.btn-text');
-                const spinner = this.querySelector('.spinner-border');
-                const originalText = btnText.textContent;
-                
-                btnText.textContent = 'Processing...';
-                spinner.classList.remove('d-none');
-                this.disabled = true;
-                
-                try {
-                    // Create checkout session
-                    const response = await fetch('/php/create_checkout_final.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: new URLSearchParams({
-                            plan_id: planId,
-                            csrf_token: csrfToken
-                        })
-                    });
-                    
-                    const result = await response.json();
-                    
-                    console.log('Checkout response:', result);
-                    
-                    if (result.session_id && result.session_id.startsWith('cs_')) {
-                        // Real Stripe session - redirect to checkout
-                        const { error } = await stripe.redirectToCheckout({
-                            sessionId: result.session_id
-                        });
-                        
-                        if (error) {
-                            console.error('Stripe error:', error);
-                            alert('Payment failed: ' + error.message);
-                        }
-                    } else if (result.success) {
-                        // Test response - show debug info
-                        alert('Test successful! Check console for details.');
-                        console.log('Debug info:', result.debug);
-                    } else {
-                        alert('Error: ' + (result.error || 'Failed to create checkout session'));
-                        if (result.debug) {
-                            console.log('Debug info:', result.debug);
-                        }
-                    }
-                } catch (error) {
-                    console.error('Checkout Error Details:', {
-                        error: error,
-                        message: error.message,
-                        stack: error.stack
-                    });
-                    alert('Network error. Please check console for details. Error: ' + error.message);
-                } finally {
-                    // Reset button state
-                    btnText.textContent = originalText;
-                    spinner.classList.add('d-none');
-                    this.disabled = false;
-                }
-            });
-        });
-
-        // Handle activate free plan button
-        document.querySelectorAll('.activate-free-plan-btn').forEach(button => {
-            button.addEventListener('click', async function() {
-                const planId = this.dataset.planId;
-                
-                // Show loading state
-                const btnText = this.querySelector('.btn-text');
-                const spinner = this.querySelector('.spinner-border');
-                const originalText = btnText.textContent;
-                
-                btnText.textContent = 'Activating...';
-                spinner.classList.remove('d-none');
-                this.disabled = true;
-                
-                try {
-                    const response = await fetch('php/activate_free_plan.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: new URLSearchParams({
-                            plan_id: planId,
-                            csrf_token: csrfToken
-                        })
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        // Reload page to reflect changes
-                        window.location.href = 'billing?activation_success=true';
-                    } else {
-                        alert('Error: ' + (result.error || 'Failed to activate free plan'));
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Network error. Please try again.');
-                } finally {
-                    // Reset button state (though page reload will happen on success)
-                    btnText.textContent = originalText;
-                    spinner.classList.add('d-none');
-                    this.disabled = false;
-                }
-            });
-        });
-        
-        }
-        
-        // Initialize when DOM is ready
-        document.addEventListener('DOMContentLoaded', function() {
-            // Try to initialize immediately, then with delays if needed
-            let attempts = 0;
-            const maxAttempts = 10;
-            
-            function tryInitialize() {
-                attempts++;
-                if (typeof Stripe !== 'undefined') {
-                    initializeStripe();
-                } else if (attempts < maxAttempts) {
-                    console.log('Waiting for Stripe.js to load, attempt:', attempts);
-                    setTimeout(tryInitialize, 200);
-                } else {
-                    console.error('Stripe.js failed to load after multiple attempts');
-                    alert('Payment system unavailable. Please refresh the page and try again.');
-                }
-            }
-            
-            tryInitialize();
-        });
-    </script>
+    <script src="assets/js/billing.js"></script>
     
     <!-- Footer -->
     <footer class="bg-dark text-light py-5" role="contentinfo">

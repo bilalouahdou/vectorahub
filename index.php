@@ -14,13 +14,13 @@ require_once 'php/utils.php';
     <title>Free AI Image Vectorizer | Convert JPG PNG to SVG Online - VectraHub</title>
     <meta name="description" content="Transform images to crisp SVG vectors instantly with VectraHub. Free AI-powered tool for designers, print shops & students. Batch upload, perfect for logos & graphics.">
     <meta name="keywords" content="image vectorizer, convert jpg to svg, png to svg converter, free vector tool, ai vectorization, vectra hub">
-    <link rel="canonical" href="https://vectorahub.online/">
+            <link rel="canonical" href="https://vectrahub.online/">
     
     <!-- Open Graph Tags -->
     <meta property="og:title" content="Free AI Image Vectorizer | Convert JPG PNG to SVG Online - VectraHub">
     <meta property="og:description" content="Transform images to crisp SVG vectors instantly with VectraHub. Free AI-powered tool for designers, print shops & students.">
-    <meta property="og:image" content="https://vectorahub.online/assets/images/og-vectorizer-demo.jpg">
-    <meta property="og:url" content="https://vectorahub.online/">
+            <meta property="og:image" content="https://vectrahub.online/assets/images/og-vectorizer-demo.jpg">
+        <meta property="og:url" content="https://vectrahub.online/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="VectraHub">
     
@@ -28,7 +28,7 @@ require_once 'php/utils.php';
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Free AI Image Vectorizer | Convert JPG PNG to SVG Online - VectraHub">
     <meta name="twitter:description" content="Transform images to crisp SVG vectors instantly with VectraHub. Free AI-powered tool for designers, print shops & students.">
-    <meta name="twitter:image" content="https://vectorahub.online/assets/images/twitter-vectorizer-demo.jpg">
+            <meta name="twitter:image" content="https://vectrahub.online/assets/images/twitter-vectorizer-demo.jpg">
     
     <!-- Preload Critical Resources -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" as="style">
@@ -46,7 +46,7 @@ require_once 'php/utils.php';
         "@type": "SoftwareApplication",
         "name": "VectraHub",
         "description": "Free AI-powered image vectorization tool that converts JPG and PNG images to scalable SVG format",
-        "url": "https://vectorahub.online",
+        "url": "https://vectrahub.online",
         "applicationCategory": "DesignApplication",
         "operatingSystem": "Web Browser",
         "offers": {
@@ -540,7 +540,7 @@ require_once 'php/utils.php';
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
-    <script src="assets/js/upload.js" defer></script>
+    <script src="assets/js/upload.js?v=<?php echo time(); ?>" defer></script>
     
     <!-- Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID"></script>

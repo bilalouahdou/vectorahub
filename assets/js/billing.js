@@ -8,20 +8,45 @@
  * - Content-Type verification
  */
 
-// Wait for both DOM and Stripe.js to load
-function initializeBilling() {
-    if (typeof Stripe === 'undefined') {
-        console.error('Stripe.js failed to load');
-        showError('Payment system unavailable. Please refresh the page and try again.');
+/**
+ * Wait for Stripe.js to load with timeout
+ * @param {number} maxMs - Maximum time to wait in milliseconds
+ * @returns {Promise<Stripe>} - Promise that resolves to Stripe instance
+ */
+async function waitForStripe(maxMs = 3000) {
+    const start = performance.now();
+    while (!window.Stripe) {
+        if (performance.now() - start > maxMs) {
+            throw new Error('Stripe.js not loaded within timeout period');
+        }
+        await new Promise(r => setTimeout(r, 100));
+    }
+    
+    // Validate publishable key
+    if (!STRIPE_PUBLISHABLE_KEY) {
+        throw new Error('Stripe publishable key is missing');
+    }
+    
+    return Stripe(STRIPE_PUBLISHABLE_KEY);
+}
+
+// Initialize billing system with proper Stripe loading
+async function initializeBilling() {
+    let stripe;
+    
+    try {
+        // Wait for Stripe to load
+        stripe = await waitForStripe();
+        console.log('Stripe initialized successfully:', stripe);
+    } catch (error) {
+        console.error('Stripe initialization failed:', error.message);
+        showError('Stripe failed to load. Check console for details.');
         return;
     }
     
-    // Initialize Stripe
-    const stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
     const csrfToken = document.getElementById('csrf_token')?.value || '';
     
     // Debug info (remove in production)
-    console.log('Stripe initialized:', stripe);
     console.log('CSRF Token available:', !!csrfToken);
     console.log('Publishable Key:', STRIPE_PUBLISHABLE_KEY);
 
@@ -47,8 +72,11 @@ function initializeBilling() {
             this.disabled = true;
             
             try {
-                // Create checkout session via hardened API
-                const response = await fetch('/php/api/create_checkout.php', {
+                // Create checkout session via hardened API with timeout
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 7000);
+                
+                const response = await fetch('/api/create_checkout.php', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
@@ -56,8 +84,12 @@ function initializeBilling() {
                     body: new URLSearchParams({
                         plan_id: planId,
                         csrf_token: csrfToken
-                    })
+                    }),
+                    credentials: 'same-origin', // Ensures PHPSESSID cookie is sent
+                    signal: controller.signal
                 });
+                
+                clearTimeout(timeoutId);
                 
                 // Verify Content-Type header before parsing JSON
                 const contentType = response.headers.get('content-type');
@@ -80,14 +112,17 @@ function initializeBilling() {
                         showError('Payment failed: ' + error.message);
                     }
                 } else {
-                    // Handle error response
-                    const errorMessage = result.error || 'Failed to create checkout session';
-                    showError(errorMessage);
-                    
-                    // Handle CSRF token errors specifically
-                    if (errorMessage.includes('CSRF token invalid')) {
-                        showError('Session expired, please refresh the page.');
-                    }
+                                    // Handle error response
+                const errorMessage = result.error || 'Failed to create checkout session';
+                
+                // Handle CSRF token errors specifically
+                if (errorMessage.includes('CSRF token invalid') || response.status === 419) {
+                    showError('Session expired, reloading...');
+                    setTimeout(() => location.reload(), 1500);
+                    return;
+                }
+                
+                showError(errorMessage);
                 }
             } catch (error) {
                 console.error('Checkout Error Details:', {
@@ -96,10 +131,14 @@ function initializeBilling() {
                     stack: error.stack
                 });
                 
-                if (error.message === 'Non-JSON response from server') {
+                if (error.name === 'AbortError') {
+                    showError('Request timed out. Please try again.');
+                } else if (error.message === 'Non-JSON response from server') {
                     showError('Server returned invalid response. Please try again.');
-                } else {
+                } else if (error.message.includes('Failed to fetch')) {
                     showError('Network error. Please check your connection and try again.');
+                } else {
+                    showError('Payment system error. Please try again.');
                 }
             } finally {
                 // Reset button state
@@ -138,7 +177,8 @@ function initializeBilling() {
                     body: new URLSearchParams({
                         plan_id: planId,
                         csrf_token: csrfToken
-                    })
+                    }),
+                    credentials: 'same-origin' // Ensures PHPSESSID cookie is sent
                 });
                 
                 // Verify Content-Type header
@@ -154,12 +194,15 @@ function initializeBilling() {
                     window.location.href = 'billing?activation_success=true';
                 } else {
                     const errorMessage = result.error || 'Failed to activate free plan';
-                    showError(errorMessage);
                     
                     // Handle CSRF token errors specifically
-                    if (errorMessage.includes('CSRF token invalid')) {
-                        showError('Session expired, please refresh the page.');
+                    if (errorMessage.includes('CSRF token invalid') || response.status === 419) {
+                        showError('Session expired, reloading...');
+                        setTimeout(() => location.reload(), 1500);
+                        return;
                     }
+                    
+                    showError(errorMessage);
                 }
             } catch (error) {
                 console.error('Free plan activation error:', error);
@@ -257,22 +300,9 @@ function showSuccess(message) {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    // Try to initialize immediately, then with delays if needed
-    let attempts = 0;
-    const maxAttempts = 10;
-    
-    function tryInitialize() {
-        attempts++;
-        if (typeof Stripe !== 'undefined') {
-            initializeBilling();
-        } else if (attempts < maxAttempts) {
-            console.log('Waiting for Stripe.js to load, attempt:', attempts);
-            setTimeout(tryInitialize, 200);
-        } else {
-            console.error('Stripe.js failed to load after multiple attempts');
-            showError('Payment system unavailable. Please refresh the page and try again.');
-        }
-    }
-    
-    tryInitialize();
+    // Initialize billing system with proper error handling
+    initializeBilling().catch(error => {
+        console.error('Billing initialization failed:', error);
+        showError('Payment system initialization failed. Please refresh the page.');
+    });
 });

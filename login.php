@@ -297,7 +297,10 @@ if (isLoggedIn()) {
             try {
                 const response = await fetch('php/auth/login.php', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    // Ensure session cookie (PHPSESSID) is sent and Set-Cookie is accepted
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
                 });
                 
                 const result = await response.json();
@@ -312,7 +315,10 @@ if (isLoggedIn()) {
                     
                     // Redirect to dashboard after 1 second
                     setTimeout(() => {
-                        window.location.href = result.redirect || 'dashboard';
+                        const target = (typeof result.redirect === 'string' && result.redirect.length)
+                            ? (result.redirect.startsWith('/') ? result.redirect : '/' + result.redirect)
+                            : '/dashboard';
+                        window.location.href = target;
                     }, 1000);
                 } else if (result.needs_verification) {
                     // Show email verification required message with resend option

@@ -3,6 +3,7 @@
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+require_once __DIR__ . '/../config/bootstrap.php';
 require_once '../config.php';
 require_once '../utils.php';
 
@@ -186,10 +187,10 @@ try {
     error_log('Upload and vectorize error: ' . $e->getMessage());
     error_log('Upload and vectorize error trace: ' . $e->getTraceAsString());
     
-    http_response_code(500);
+    http_response_code(200);
     echo json_encode([
         'success' => false,
-        'error' => $e->getMessage()
+        'code' => 'unexpected',
+        'error' => 'Server error'
     ]);
 }
-?>

@@ -48,4 +48,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 } else {
     jsonResponse(['success' => false, 'error' => 'Invalid request method.'], 405);
 }
-?>

@@ -45,6 +45,7 @@ try {
     $csrfToken = $_POST['csrf_token'] ?? '';
     if (!verifyCsrfToken($csrfToken)) {
         ob_clean();
+        http_response_code(419); // Unprocessable Entity - commonly used for CSRF failures
         echo json_encode([
             'success' => false,
             'error' => 'CSRF token invalid'
@@ -98,6 +99,7 @@ try {
     $sessionData = [
         'success_url' => 'https://vectrahub.online/billing?success=true',
         'cancel_url' => 'https://vectrahub.online/billing?canceled=true',
+        'client_reference_id' => $userId, // Required for webhook to identify user
         'metadata' => [
             'user_id' => $userId,
             'plan_id' => $planId,
@@ -172,4 +174,3 @@ try {
 
 // Ensure output buffer is flushed
 ob_end_flush();
-?>

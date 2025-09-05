@@ -5,6 +5,9 @@ define('APP_ENV', getenv('APP_ENV') ?: 'development'); // 'development', 'produc
 define('APP_NAME', getenv('APP_NAME') ?: 'VectraHub');
 define('APP_URL', getenv('APP_URL') ?: 'https://vectrahub.online');
 
+// Environment variables are now handled by bootstrap.php
+// This ensures Apache-provided variables are never overridden
+
 // --- Database Configuration (Supabase PostgreSQL) ---
 // Prioritize DATABASE_URL if available (e.g., from Fly.io)
 $databaseUrl = getenv('DATABASE_URL');
@@ -43,6 +46,12 @@ define('STRIPE_PUBLISHABLE_KEY', getenv('STRIPE_PUBLISHABLE_KEY') ?: '');
 define('STRIPE_SECRET_KEY', getenv('STRIPE_SECRET_KEY') ?: '');
 define('STRIPE_WEBHOOK_SECRET', getenv('STRIPE_WEBHOOK_SECRET') ?: '');
 
+// --- External Runner (GPU/Vectorize) ---
+// Cloudflared/Salad endpoint and auth shared secret
+define('RUNNER_BASE_URL', rtrim(getenv('RUNNER_BASE_URL') ?: '', '/'));
+define('RUNNER_SHARED_TOKEN', getenv('RUNNER_SHARED_TOKEN') ?: '');
+define('RUNNER_TIMEOUT_SECONDS', (int)(getenv('RUNNER_TIMEOUT_SECONDS') ?: 120));
+
 // --- File Upload Settings ---
 define('UPLOAD_MAX_SIZE', (int)(getenv('UPLOAD_MAX_SIZE') ?: 5 * 1024 * 1024)); // 5 MB
 define('ALLOWED_IMAGE_TYPES', ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']);
@@ -75,7 +84,12 @@ if (APP_ENV === 'development') {
     error_reporting(0);
     ini_set('display_errors', 0);
     ini_set('log_errors', 1);
-    ini_set('error_log', __DIR__ . '/../logs/php_errors.log');
+    ini_set('error_log', __DIR__ . '/logs/php_errors.log');
+}
+
+// Ensure logs directory exists
+if (!is_dir(__DIR__ . '/logs')) {
+    mkdir(__DIR__ . '/logs', 0755, true);
 }
 
 // --- Database Connection Function ---
@@ -149,11 +163,6 @@ function logMessage($level, $message) {
     $timestamp = date('Y-m-d H:i:s');
     $logEntry = "[$timestamp] [$level] $message" . PHP_EOL;
     file_put_contents($logFile, $logEntry, FILE_APPEND);
-}
-
-// Ensure log directory exists
-if (!is_dir(__DIR__ . '/../logs')) {
-    mkdir(__DIR__ . '/../logs', 0755, true);
 }
 
 // Ensure upload, output, temp directories exist

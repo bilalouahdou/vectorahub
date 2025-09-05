@@ -161,6 +161,23 @@ server {
         deny all;
     }
 
+    # Allow file_proxy.php for image serving
+    location ~ ^/php/api/file_proxy\.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    # Allow other API endpoints  
+    location ~ ^/php/api/.*\.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    # Block other php/scripts/python access
     location ~ /(php|scripts|python)/ {
         deny all;
     }

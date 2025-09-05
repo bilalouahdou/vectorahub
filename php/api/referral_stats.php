@@ -72,4 +72,3 @@ try {
     error_log("Referral stats API error for user $userId: " . $e->getMessage());
     jsonResponse(['success' => false, 'error' => 'Failed to load referral statistics.'], 500);
 }
-?>

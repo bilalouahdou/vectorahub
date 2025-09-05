@@ -29,22 +29,22 @@ RewriteCond %{REQUEST_URI} !^/php/
 RewriteCond %{REQUEST_URI} !^/api/
 RewriteRule ^ %1 [R=301,L]
 
-# 2) API endpoints - serve PHP files directly (internal rewrite, no redirect)
+# 2) Health check endpoint - serve directly without redirect
+RewriteRule ^health/?$ health.php [L]
+
+# 3) API endpoints - serve PHP files directly (internal rewrite, no redirect)
 RewriteRule ^api/create_checkout\.php$ php/api/create_checkout.php [L]
 RewriteRule ^webhook/stripe/?$ php/webhook/stripe.php [L]
 RewriteRule ^webhook/test/?$ php/webhook/test.php [L]
 
-# 3) Serve existing files/folders normally (don't rewrite assets)
+# 4) Serve existing files/folders normally (don't rewrite assets)
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# 4) Map extensionless URLs to their .php counterparts: /login -> /login.php
+# 5) Map extensionless URLs to their .php counterparts: /login -> /login.php
 RewriteCond %{REQUEST_FILENAME}.php -f
 RewriteRule ^(.+)$ $1.php [L,QSA]
 
-# 5) API route rewrite for backward compatibility (removed - causes conflicts)
-# RewriteRule ^php/api/create_checkout\.php$ /api/create_checkout.php [L]
-
-# 5) Default document
+# 6) Default document
 DirectoryIndex index.php 

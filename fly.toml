@@ -3,6 +3,10 @@ primary_region = "cdg"
 
 [build]
   dockerfile = "Dockerfile"
+  
+[deploy]
+  release_command = "echo 'Deployment starting...'"
+  strategy = "rolling"
 
 [env]
   PATH = "/opt/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
@@ -24,13 +28,14 @@ primary_region = "cdg"
   processes = ["app"]
 
   [[http_service.checks]]
-    grace_period = "60s"    # Increased from 30s to 60s
-    interval = "30s"        # Increased from 20s to 30s
+    grace_period = "90s"    # Extended grace period for PHP/Python startup
+    interval = "30s"        # Check every 30 seconds
     method = "GET"
-    timeout = "15s"         # Increased from 10s to 15s
-    path = "/health"        # Changed from /health.php to /health (clean URL)
+    timeout = "20s"         # Longer timeout for initial health checks
+    path = "/health"        # Health check endpoint (no redirects)
     protocol = "http"
     tls_skip_verify = false
+    headers = {}            # No special headers needed
 
   [http_service.concurrency]
     type = "connections"
@@ -40,7 +45,7 @@ primary_region = "cdg"
 [[vm]]
   cpu_kind = "shared"
   cpus = 1
-  memory_mb = 1024
+  memory_mb = 2048
 
 [mounts]
   source = "uploads"

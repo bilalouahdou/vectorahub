@@ -8124,3 +8124,45 @@ INFO:     Waiting for application startup.
 2025-09-05 16:44:07,099 - runner.app - INFO - Runner will auto-shutdown after 8 minutes of inactivity
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-09-05 16:52:07,939 - runner.app - INFO - Work directory: C:\vh_runner\tmp
+INFO:     Started server process [9408]
+INFO:     Waiting for application startup.
+2025-09-05 16:52:07,941 - runner.app - INFO - Starting GPU Vectorization Runner...
+2025-09-05 16:52:07,941 - runner.app - INFO - Runner will auto-shutdown after 8 minutes of inactivity
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-09-05 17:00:08,846 - runner.app - INFO - Work directory: C:\vh_runner\tmp
+INFO:     Started server process [13252]
+INFO:     Waiting for application startup.
+2025-09-05 17:00:08,848 - runner.app - INFO - Starting GPU Vectorization Runner...
+2025-09-05 17:00:08,848 - runner.app - INFO - Runner will auto-shutdown after 8 minutes of inactivity
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-09-05 17:08:09,769 - runner.app - INFO - Work directory: C:\vh_runner\tmp
+INFO:     Started server process [25560]
+INFO:     Waiting for application startup.
+2025-09-05 17:08:09,771 - runner.app - INFO - Starting GPU Vectorization Runner...
+2025-09-05 17:08:09,771 - runner.app - INFO - Runner will auto-shutdown after 8 minutes of inactivity
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-09-05 17:16:10,707 - runner.app - INFO - Work directory: C:\vh_runner\tmp
+INFO:     Started server process [19856]
+INFO:     Waiting for application startup.
+2025-09-05 17:16:10,708 - runner.app - INFO - Starting GPU Vectorization Runner...
+2025-09-05 17:16:10,708 - runner.app - INFO - Runner will auto-shutdown after 8 minutes of inactivity
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-09-05 17:24:11,567 - runner.app - INFO - Work directory: C:\vh_runner\tmp
+INFO:     Started server process [9904]
+INFO:     Waiting for application startup.
+2025-09-05 17:24:11,569 - runner.app - INFO - Starting GPU Vectorization Runner...
+2025-09-05 17:24:11,569 - runner.app - INFO - Runner will auto-shutdown after 8 minutes of inactivity
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+2025-09-05 17:32:12,436 - runner.app - INFO - Work directory: C:\vh_runner\tmp
+INFO:     Started server process [26988]
+INFO:     Waiting for application startup.
+2025-09-05 17:32:12,438 - runner.app - INFO - Starting GPU Vectorization Runner...
+2025-09-05 17:32:12,438 - runner.app - INFO - Runner will auto-shutdown after 8 minutes of inactivity
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)

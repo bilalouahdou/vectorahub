@@ -1,34 +1,62 @@
-# flyctl launch added from vendor\stripe\stripe-php\.gitignore
-# Ignore build files
-vendor\stripe\stripe-php\**\build\*
+# Git
+.git
+.gitignore
+.gitattributes
 
-# Mac OS X dumps these all over the place.
-vendor\stripe\stripe-php\**\.DS_Store
+# Documentation
+README.md
+*.md
+docs/
+deployment/README.md
 
-# Ignore the SimpleTest library if it is installed to /test/.
-vendor\stripe\stripe-php\test\simpletest
+# Development files
+.env.local
+.env.development
+.DS_Store
+Thumbs.db
 
-# Ignore the /vendor/ directory for people using composer
-vendor\stripe\stripe-php\vendor
+# Logs
+*.log
+logs/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.pyo
 
-# If the vendor directory isn't being commited the composer.lock file should also be ignored
-vendor\stripe\stripe-php\**\composer.lock
+# Node modules (if any)
+node_modules/
 
-# Ignore IDE's configuration files
-vendor\stripe\stripe-php\**\.idea
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Ignore PHP CS Fixer local config and cache
-vendor\stripe\stripe-php\**\.php_cs
-vendor\stripe\stripe-php\**\.php_cs.cache
-vendor\stripe\stripe-php\**\.php-cs-fixer.cache
+# Temporary files
+temp/
+tmp/
+*.tmp
 
-# Ignore PHPStan local config
-vendor\stripe\stripe-php\**\.phpstan.neon
+# Build artifacts
+.buildpacks
+.build/
 
-# Ignore phpDocumentor's local config and artifacts
-vendor\stripe\stripe-php\**\.phpdoc\*
-vendor\stripe\stripe-php\**\phpdoc.xml
+# Local development
+.vagrant/
+vagrant/
 
-# Ignore cached PHPUnit results.
-vendor\stripe\stripe-php\**\.phpunit.result.cache
+# OS files
+.DS_Store
+Thumbs.db
+
+# Large unnecessary files
+*.zip
+*.tar.gz
+*.sql
+myv2*.sql
+python.zip
+runner.zip
+
+# Deployment configs (will be copied specifically)
 fly.toml
+Dockerfile*
